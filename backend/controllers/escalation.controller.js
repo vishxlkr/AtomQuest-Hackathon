@@ -1,10 +1,11 @@
 import EscalationRule from "../models/EscalationRule.js";
 import EscalationLog from "../models/EscalationLog.js";
+import User from "../models/User.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/apiError.js";
 
 const VALID_EVENTS = ["GOAL_NOT_SUBMITTED", "GOAL_NOT_APPROVED", "CHECKIN_NOT_DONE"];
-const VALID_TARGETS = ["employee", "manager", "skip_level", "hr", "admin"];
+const VALID_TARGETS = ["employee", "manager", "skip_level", "hr", "admin", "custom"];
 
 function normalizeEscalationChain(body) {
   const source = Array.isArray(body.escalationChain) && body.escalationChain.length
@@ -12,10 +13,12 @@ function normalizeEscalationChain(body) {
     : [{ target: body.escalateTo || "manager", afterDays: body.thresholdDays }];
   const chain = source.map((stage) => ({
     target: stage.target,
+    targetUserId: stage.target === "custom" ? stage.targetUserId : null,
     afterDays: Number(stage.afterDays)
   }));
   chain.forEach((stage) => {
     if (!VALID_TARGETS.includes(stage.target)) throw new ApiError(400, "INVALID_TARGET", "Invalid escalation target");
+    if (stage.target === "custom" && !stage.targetUserId) throw new ApiError(400, "CUSTOM_TARGET_REQUIRED", "Select a user for custom escalation stages");
     if (!Number(stage.afterDays) || Number(stage.afterDays) < 1) throw new ApiError(400, "INVALID_THRESHOLD", "Stage days must be at least 1");
   });
   chain.sort((a, b) => a.afterDays - b.afterDays);
@@ -28,7 +31,21 @@ function validateRulePayload(body) {
 }
 
 const getRules = asyncHandler(async (req, res) => {
-  res.json({ success: true, data: await EscalationRule.find().sort({ createdAt: -1 }) });
+  res.json({ success: true, data: await EscalationRule.find().populate("escalationChain.targetUserId", "name email role department employeeId").sort({ createdAt: -1 }) });
+});
+
+const getEscalationUsers = asyncHandler(async (req, res) => {
+  const search = String(req.query.search || "").trim();
+  const filter = { isActive: true };
+  if (search) {
+    const pattern = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    filter.$or = [{ name: pattern }, { email: pattern }, { employeeId: pattern }, { department: pattern }];
+  }
+  const users = await User.find(filter)
+    .select("name email role department employeeId")
+    .sort({ name: 1 })
+    .limit(200);
+  res.json({ success: true, data: users });
 });
 
 const createRule = asyncHandler(async (req, res) => {
@@ -37,7 +54,7 @@ const createRule = asyncHandler(async (req, res) => {
     ...req.body,
     escalationChain,
     thresholdDays: escalationChain[0].afterDays,
-    escalateTo: escalationChain[0].target === "employee" ? "manager" : escalationChain[0].target,
+    escalateTo: ["employee", "custom"].includes(escalationChain[0].target) ? "manager" : escalationChain[0].target,
     createdBy: req.user._id
   });
   res.status(201).json({ success: true, data: rule });
@@ -59,7 +76,7 @@ const updateRule = asyncHandler(async (req, res) => {
   if (escalationChain) {
     update.escalationChain = escalationChain;
     update.thresholdDays = escalationChain[0].afterDays;
-    update.escalateTo = escalationChain[0].target === "employee" ? "manager" : escalationChain[0].target;
+    update.escalateTo = ["employee", "custom"].includes(escalationChain[0].target) ? "manager" : escalationChain[0].target;
   }
   const rule = await EscalationRule.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
   res.json({ success: true, data: rule });
@@ -102,4 +119,4 @@ const resolveEscalation = asyncHandler(async (req, res) => {
   res.json({ success: true, data: log });
 });
 
-export { getRules, createRule, updateRule, deleteRule, getEscalationLogs, resolveEscalation };
+export { getRules, getEscalationUsers, createRule, updateRule, deleteRule, getEscalationLogs, resolveEscalation };

@@ -6,6 +6,7 @@ const router = express.Router();
 router.use(verifyToken, requireRole("admin", "hr"));
 
 router.get("/escalations/rules", ctrl.getRules);
+router.get("/escalations/users", ctrl.getEscalationUsers);
 router.post("/escalations/rules", ctrl.createRule);
 router.patch("/escalations/rules/:id", ctrl.updateRule);
 router.delete("/escalations/rules/:id", ctrl.deleteRule);

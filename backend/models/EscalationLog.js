@@ -4,7 +4,7 @@ const escalationLogSchema = new mongoose.Schema({
   ruleId: { type: mongoose.Schema.Types.ObjectId, ref: "EscalationRule", required: true },
   triggerEvent: { type: String, required: true },
   contextKey: { type: String, index: true },
-  stageTarget: { type: String, enum: ["employee", "manager", "skip_level", "hr", "admin"] },
+  stageTarget: { type: String, enum: ["employee", "manager", "skip_level", "hr", "admin", "custom"] },
   stageAfterDays: Number,
   affectedUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   escalatedToUserId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

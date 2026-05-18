@@ -28,6 +28,7 @@ async function firstHrOrAdmin() {
 }
 
 async function escalationTarget(employeeOrManager, targetType) {
+  if (targetType === "custom") return null;
   if (targetType === "employee") return employeeOrManager;
   if (targetType === "admin") return firstAdmin();
   if (targetType === "hr") return firstHrOrAdmin();
@@ -38,6 +39,13 @@ async function escalationTarget(employeeOrManager, targetType) {
   }
   if (employeeOrManager.managerId) return User.findById(employeeOrManager.managerId);
   return firstHrOrAdmin();
+}
+
+async function stageTarget(employeeOrManager, stage) {
+  if (stage.target === "custom") {
+    return stage.targetUserId ? User.findOne({ _id: stage.targetUserId, isActive: true }) : null;
+  }
+  return escalationTarget(employeeOrManager, stage.target);
 }
 
 function normalizeChain(rule) {
@@ -92,8 +100,9 @@ async function runGoalNotSubmitted(rule, cycle, today) {
     if (sheet) continue;
     for (const stage of stages) {
       if (await alreadySentStage(rule._id, employee._id, stage.target, contextKey)) continue;
-      const target = await escalationTarget(employee, stage.target);
-      const message = `${employee.name} (Dept: ${employee.department || "Unassigned"}) has not submitted their goals. Cycle opened ${age} days ago. Escalation stage: ${stage.target.replace("_", " ")} after ${stage.afterDays} days.`;
+      const target = await stageTarget(employee, stage);
+      const stageLabel = stage.target === "custom" ? target?.name || "custom user" : stage.target.replace("_", " ");
+      const message = `${employee.name} (Dept: ${employee.department || "Unassigned"}) has not submitted their goals. Cycle opened ${age} days ago. Escalation stage: ${stageLabel} after ${stage.afterDays} days.`;
       await createLogAndNotify({ rule, stage, contextKey, affectedUser: employee, target, message, subject: "[AtomQuest] Escalation: goals not submitted", link: stage.target === "employee" ? "/goals" : "/team" });
       if (stage.target === "employee") {
         await sendCheckInReminderEmail({
@@ -115,8 +124,9 @@ async function runGoalNotApproved(rule, cycle, today) {
     const stages = normalizeChain(rule).filter((stage) => age >= stage.afterDays);
     for (const stage of stages) {
       if (await alreadySentStage(rule._id, sheet.employeeId._id, stage.target, contextKey)) continue;
-      const target = await escalationTarget(sheet.employeeId, stage.target);
-      const message = `${sheet.employeeId.name}'s goal sheet has been awaiting approval for ${age} days. Escalation stage: ${stage.target.replace("_", " ")} after ${stage.afterDays} days.`;
+      const target = await stageTarget(sheet.employeeId, stage);
+      const stageLabel = stage.target === "custom" ? target?.name || "custom user" : stage.target.replace("_", " ");
+      const message = `${sheet.employeeId.name}'s goal sheet has been awaiting approval for ${age} days. Escalation stage: ${stageLabel} after ${stage.afterDays} days.`;
       await createLogAndNotify({ rule, stage, contextKey, affectedUser: sheet.employeeId, target, message, subject: "[AtomQuest] Escalation: goal approval delayed", link: stage.target === "employee" ? "/goals" : "/team" });
     }
   }
@@ -136,8 +146,9 @@ async function runCheckInNotDone(rule, cycle, today) {
     if (done) continue;
     for (const stage of stages) {
       if (await alreadySentStage(rule._id, employee._id, stage.target, contextKey)) continue;
-      const target = await escalationTarget(employee, stage.target);
-      const message = `${employee.name} has not completed ${currentQuarter.quarter} check-in. Window opened ${age} days ago. Escalation stage: ${stage.target.replace("_", " ")} after ${stage.afterDays} days.`;
+      const target = await stageTarget(employee, stage);
+      const stageLabel = stage.target === "custom" ? target?.name || "custom user" : stage.target.replace("_", " ");
+      const message = `${employee.name} has not completed ${currentQuarter.quarter} check-in. Window opened ${age} days ago. Escalation stage: ${stageLabel} after ${stage.afterDays} days.`;
       await createLogAndNotify({ rule, stage, contextKey, affectedUser: employee, target, message, subject: `[AtomQuest] Escalation: ${currentQuarter.quarter} check-in pending`, link: stage.target === "employee" ? "/checkin" : "/checkins" });
     }
   }
