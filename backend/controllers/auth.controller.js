@@ -76,16 +76,29 @@ const getAzureLoginUrl = asyncHandler(async (req, res) => {
     return res.status(503).json({ success: false, error: { code: "AZURE_NOT_CONFIGURED", message: "SSO available in production environment" } });
   }
   const portal = ["admin", "employee"].includes(req.query.portal) ? req.query.portal : "employee";
+  const prompt = ["login", "select_account", "consent"].includes(req.query.prompt) ? req.query.prompt : "select_account";
   const authUrl = await getMsalClient().getAuthCodeUrl({
     scopes: ["openid", "profile", "email", "User.Read"],
     redirectUri: process.env.AZURE_REDIRECT_URI,
-    state: portal
+    state: portal,
+    prompt
   });
   res.json({ success: true, data: { authUrl }, authUrl });
 });
 
+function getPortalBase(portal) {
+  return portal === "admin" ? process.env.ADMIN_PORTAL_URL : process.env.EMPLOYEE_PORTAL_URL;
+}
+
+function redirectAzureError(res, portal, message) {
+  const portalBase = getPortalBase(portal);
+  const params = new URLSearchParams({ message });
+  return res.redirect(`${portalBase}/login?${params.toString()}`);
+}
+
 const handleAzureCallback = asyncHandler(async (req, res) => {
   if (!req.query.code) throw new ApiError(400, "CODE_REQUIRED", "Azure authorization code is required");
+  const requestedPortal = ["admin", "employee"].includes(req.query.state) ? req.query.state : "employee";
   const tokenResponse = await getMsalClient().acquireTokenByCode({
     code: req.query.code,
     scopes: ["openid", "profile", "email", "User.Read"],
@@ -97,7 +110,13 @@ const handleAzureCallback = asyncHandler(async (req, res) => {
   const azureOid = account.localAccountId || account.homeAccountId;
 
   let user = await User.findOne({ $or: [{ email }, { azureOid }] }).select("+password");
+  if (!user && requestedPortal === "admin") {
+    return redirectAzureError(res, "admin", "This Microsoft account is not an admin or manager in AtomQuest.");
+  }
   if (user) {
+    if (!user.isActive) {
+      return redirectAzureError(res, requestedPortal, "This account is inactive or has been removed.");
+    }
     user.name = name;
     user.azureOid = user.azureOid || azureOid;
     if (!user.password) user.authProvider = "azure";
@@ -114,19 +133,19 @@ const handleAzureCallback = asyncHandler(async (req, res) => {
     });
   }
 
+  if (requestedPortal === "admin" && !["admin", "manager"].includes(user.role)) {
+    return redirectAzureError(res, "admin", "Use the employee portal for this Microsoft account.");
+  }
+  if (requestedPortal === "employee" && user.role !== "employee") {
+    return redirectAzureError(res, "employee", "Use the admin portal for this Microsoft account.");
+  }
+
   const accessToken = signAccessToken(user);
   const refreshTokenValue = signRefreshToken(user);
   user.refreshToken = await bcrypt.hash(refreshTokenValue, 10);
   await user.save();
   setRefreshCookie(res, refreshTokenValue);
-  const requestedPortal = ["admin", "employee"].includes(req.query.state) ? req.query.state : null;
-  const portalBase = requestedPortal === "admin" && ["admin", "manager"].includes(user.role)
-    ? process.env.ADMIN_PORTAL_URL
-    : requestedPortal === "employee" && user.role === "employee"
-      ? process.env.EMPLOYEE_PORTAL_URL
-      : user.role === "employee"
-        ? process.env.EMPLOYEE_PORTAL_URL
-        : process.env.ADMIN_PORTAL_URL;
+  const portalBase = getPortalBase(requestedPortal);
   res.redirect(`${portalBase}/auth/callback?token=${encodeURIComponent(accessToken)}`);
 });
 

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -38,6 +38,15 @@ export default function LoginPage() {
       defaultValues: { email: "", password: "" },
    });
 
+   useEffect(() => {
+      const message = new URLSearchParams(window.location.search).get(
+         "message",
+      );
+      if (!message) return;
+      toast.error(message);
+      window.history.replaceState(null, "", "/login");
+   }, []);
+
    const submit = async (values) => {
       try {
          const user = await login(values.email, values.password);
@@ -55,8 +64,9 @@ export default function LoginPage() {
    const handleMicrosoftLogin = async () => {
       if (isMicrosoftLoading) return;
       setIsMicrosoftLoading(true);
+      clearToken();
       try {
-         const res = await api.get("/auth/azure/login?portal=employee");
+         const res = await api.get("/auth/azure/login?portal=employee&prompt=login");
          const authUrl = res.data?.authUrl || res.data?.data?.authUrl;
          if (!authUrl) {
             toast.error("Failed to get Microsoft login URL. Please try again.");

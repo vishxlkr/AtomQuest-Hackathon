@@ -35,7 +35,10 @@ const getAllUsers = asyncHandler(async (req, res) => {
   const filter = {};
   ["role", "department"].forEach((key) => { if (req.query[key]) filter[key] = req.query[key]; });
   if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === "true";
-  if (req.query.search) filter.$or = [{ name: new RegExp(req.query.search, "i") }, { email: new RegExp(req.query.search, "i") }];
+  if (req.query.search) {
+    const search = new RegExp(req.query.search, "i");
+    filter.$or = [{ name: search }, { email: search }, { employeeId: search }];
+  }
   const [items, total] = await Promise.all([User.find(filter).populate("managerId", "name email").skip((page - 1) * limit).limit(limit), User.countDocuments(filter)]);
   res.json({ success: true, data: { items, total, page, pages: Math.ceil(total / limit) } });
 });
@@ -71,6 +74,9 @@ const createUser = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   const payload = { ...req.body };
   if (payload.email) payload.email = String(payload.email).trim().toLowerCase();
+  if (payload.role && !["employee", "manager", "admin"].includes(payload.role)) {
+    throw new ApiError(400, "INVALID_ROLE", "Invalid user role");
+  }
   if (Object.prototype.hasOwnProperty.call(payload, "managerId")) {
     payload.managerId = payload.managerId || null;
     if (payload.managerId) {
