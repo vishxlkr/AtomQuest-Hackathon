@@ -35,10 +35,7 @@ export default function RouteLoadingProvider({ children }) {
       {children}
       {isRouteLoading && (
         <div className="fixed bottom-0 left-[220px] right-0 top-0 z-30 flex items-center justify-center bg-[#111118]/70 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3 rounded-lg border border-white/[0.08] bg-[#16161f]/95 px-6 py-5 shadow-2xl shadow-black/30">
-            <Spinner label="Loading page" />
-            <p className="text-[13px] font-medium text-slate-300">Loading...</p>
-          </div>
+          <Spinner label="Loading page" />
         </div>
       )}
     </RouteLoadingContext.Provider>
