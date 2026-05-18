@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-base: #0a0a0f;
+  --bg-surface: #111118;
+  --bg-card: #16161f;
+  --bg-hover: #1c1c28;
+  --bg-input: #13131a;
+  --border: rgba(255,255,255,0.06);
+  --border-soft: rgba(255,255,255,0.04);
+  --primary: #6366f1;
+  --primary-glow: rgba(99,102,241,0.15);
+  --primary-dim: rgba(99,102,241,0.08);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+}
+
+html {
+  background: var(--bg-base);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+}
+
+::selection {
+  background: rgba(99,102,241,0.35);
+  color: #fff;
+}
+
+input, select, textarea {
+  color-scheme: dark;
+}
+
+@layer utilities {
+  .bg-white { background-color: #16161f; }
+  .bg-slate-50, .bg-slate-100, .bg-gray-50, .bg-gray-100 { background-color: rgba(255,255,255,0.05); }
+  .bg-red-50 { background-color: rgba(239,68,68,0.10); }
+  .bg-green-100, .bg-emerald-100 { background-color: rgba(16,185,129,0.10); }
+  .bg-amber-50, .bg-amber-100 { background-color: rgba(245,158,11,0.10); }
+  .text-gray-400, .text-gray-500, .text-gray-600, .text-slate-600 { color: #94a3b8; }
+  .text-gray-700, .text-gray-900, .text-slate-950 { color: #f1f5f9; }
+  .text-green-700, .text-emerald-800 { color: #10b981; }
+  .text-red-700, .text-red-800 { color: #ef4444; }
+  .text-amber-700, .text-amber-800 { color: #f59e0b; }
+  .border-gray-100, .border-gray-200, .border-gray-300, .border-slate-200 { border-color: rgba(255,255,255,0.08); }
+}

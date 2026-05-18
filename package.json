@@ -1,0 +1,13 @@
+{
+  "name": "atomquest",
+  "scripts": {
+    "backend": "cd backend && npm run dev",
+    "employee": "cd employee-portal && npm run dev -- --port 3000",
+    "admin": "cd admin-portal && npm run dev -- --port 3001",
+    "seed": "cd backend && node scripts/seed.js",
+    "dev": "concurrently \"npm run backend\" \"npm run employee\" \"npm run admin\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
