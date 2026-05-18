@@ -11,6 +11,7 @@ const errorHandler = require("./middleware/errorHandler");
 const { startCronJobs } = require("./utils/cronJobs");
 
 const app = express();
+app.set("trust proxy", 1);
 const allowedOrigins = [process.env.EMPLOYEE_PORTAL_URL, process.env.ADMIN_PORTAL_URL].filter(Boolean);
 
 app.use(helmet());
