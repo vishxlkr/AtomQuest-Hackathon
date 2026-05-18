@@ -49,12 +49,12 @@ export default function LoginPage() {
    const submit = async (values) => {
       try {
          const user = await login(values.email, values.password);
-         if (!["admin", "manager"].includes(user.role)) {
+         if (user.role !== "admin") {
             clearToken();
             toast.error("Use the employee portal for this account");
             return;
          }
-         router.push(user.role === "admin" ? "/admin/dashboard" : "/dashboard");
+         router.push("/admin/dashboard");
       } catch (err) {
          toast.error(err.response?.data?.error?.message || "Login failed");
       }

@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-import AtomLoader from "../components/ui/AtomLoader";
+import Spinner from "../components/ui/Spinner";
 
 export default function RootPage() {
    const router = useRouter();
@@ -12,7 +12,7 @@ export default function RootPage() {
       if (isLoading) return;
 
       if (user) {
-         router.push("/dashboard");
+         router.push("/admin/dashboard");
       } else {
          router.push("/login");
       }
@@ -20,7 +20,7 @@ export default function RootPage() {
 
    return (
       <div className="grid min-h-screen place-items-center bg-[#111118]">
-         <AtomLoader />
+         <Spinner />
       </div>
    );
 }

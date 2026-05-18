@@ -35,15 +35,13 @@ export default function AuthCallbackPage() {
 
             const res = await tempApi.get("/auth/me");
             const user = res.data.data;
-            if (!["admin", "manager"].includes(user.role)) {
+            if (user.role !== "admin") {
                clearToken();
                toast.error("Use the employee portal for this account");
                router.replace("/login");
                return;
             }
-            router.replace(
-               user.role === "admin" ? "/admin/dashboard" : "/dashboard",
-            );
+            router.replace("/admin/dashboard");
          } catch (err) {
             clearToken();
             toast.error("Unable to complete SSO login");

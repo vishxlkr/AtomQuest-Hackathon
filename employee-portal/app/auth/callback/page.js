@@ -34,7 +34,7 @@ export default function AuthCallbackPage() {
             });
 
             const res = await tempApi.get("/auth/me");
-            if (res.data.data.role !== "employee") {
+            if (!["employee", "manager"].includes(res.data.data.role)) {
                clearToken();
                toast.error("Use the admin portal for this account");
                router.replace("/login");

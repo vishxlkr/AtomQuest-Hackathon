@@ -43,7 +43,7 @@ function sendGoalSubmittedTeams(employeeName, managerName, cycleYear) {
     text: `${employeeName} has submitted their goal sheet and is awaiting your approval.`,
     facts: [{ title: "Employee", value: employeeName }, { title: "Manager", value: managerName || "-" }, { title: "Cycle", value: cycleYear }],
     ctaLabel: "Review in AtomQuest",
-    ctaUrl: `${process.env.ADMIN_PORTAL_URL || ""}/team`
+    ctaUrl: `${process.env.EMPLOYEE_PORTAL_URL || ""}/team`
   });
 }
 
@@ -63,7 +63,7 @@ function sendCheckInDueTeams(managerName, pendingCount, quarter) {
     text: `${managerName}, you have ${pendingCount} team member(s) waiting for a ${quarter} check-in.`,
     facts: [{ title: "Quarter", value: quarter }, { title: "Pending", value: String(pendingCount) }],
     ctaLabel: "Go to Check-ins",
-    ctaUrl: `${process.env.ADMIN_PORTAL_URL || ""}/checkins`
+    ctaUrl: `${process.env.EMPLOYEE_PORTAL_URL || ""}/checkins`
   });
 }
 

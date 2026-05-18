@@ -1,7 +1,8 @@
-import Badge from "../ui/Badge";
+import Link from "next/link";
+import Button from "../ui/Button";
 import Card from "../ui/Card";
 import SharedGoalBadge from "./SharedGoalBadge";
-import { BarChart2, Share2 } from "lucide-react";
+import { BarChart2, Pencil, Share2 } from "lucide-react";
 
 const THRUST_COLORS = {
   Operations: "bg-blue-500/10 text-blue-400 border-blue-500/20",
@@ -12,7 +13,7 @@ const THRUST_COLORS = {
   Other: "bg-slate-500/10 text-slate-400 border-slate-500/20",
 };
 
-export default function GoalCard({ goal, currentUserId }) {
+export default function GoalCard({ goal, currentUserId, editable = false }) {
   const isPrimaryOwner = goal.isShared && goal.primaryOwnerId && String(goal.primaryOwnerId) === String(currentUserId);
   return (
     <Card className="group hover:border-white/10 hover:bg-[#1a1a24]">
@@ -20,7 +21,16 @@ export default function GoalCard({ goal, currentUserId }) {
         <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${THRUST_COLORS[goal.thrustArea] || THRUST_COLORS.Other}`}>
           {goal.thrustArea}
         </span>
-        <SharedGoalBadge isShared={goal.isShared} />
+        <div className="flex items-center gap-2">
+          <SharedGoalBadge isShared={goal.isShared} />
+          {editable && (
+            <Link href={`/goals/${goal._id}/edit`} aria-label={`Edit ${goal.title}`}>
+              <Button variant="icon" type="button" title="Edit goal">
+                <Pencil size={14} />
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
       <h3 className="mb-1 text-[14px] font-semibold leading-snug text-slate-200">{goal.title}</h3>
       {goal.description && <p className="mb-3 line-clamp-2 text-[12px] text-slate-500">{goal.description}</p>}

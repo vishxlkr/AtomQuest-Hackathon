@@ -95,7 +95,7 @@ async function sendGoalSubmittedEmail({ managerEmail, managerName, employeeName,
     <p style="color:#475569;line-height:1.6;">
       Please review the submitted goals, make any necessary adjustments, and approve or return them within <strong>3 working days</strong>.
     </p>
-    ${ctaButton("Review Goal Sheet", `${process.env.ADMIN_PORTAL_URL || ""}/team`)}
+    ${ctaButton("Review Goal Sheet", `${process.env.EMPLOYEE_PORTAL_URL || ""}/team`)}
     <p style="color:#94a3b8;font-size:13px;">If you have questions, please contact your HR administrator.</p>
     `
   );
@@ -170,7 +170,7 @@ async function sendCheckInReminderEmail({ userEmail, userName, quarter, windowCl
       <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin:16px 0;">
         <p style="color:#1e40af;font-size:14px;margin:0;font-weight:600;">Window closes on: ${formattedDate}</p>
       </div>
-      ${ctaButton("Complete Team Check-ins", `${process.env.ADMIN_PORTAL_URL || ""}/checkins`)}
+      ${ctaButton("Complete Team Check-ins", `${process.env.EMPLOYEE_PORTAL_URL || ""}/checkins`)}
     `
     : `
       <p style="color:#475569;line-height:1.6;">Hi ${userName},</p>

@@ -49,6 +49,10 @@ function validateGoalSheetRules(goals) {
   if (total !== 100) throw new ApiError(400, "TOTAL_WEIGHTAGE", "Total weightage must equal exactly 100%");
 }
 
+function isEmployeeEditableSheet(sheet) {
+  return sheet && ["draft", "returned"].includes(sheet.approvalStatus) && !sheet.isLocked;
+}
+
 const createGoalSheet = asyncHandler(async (req, res) => {
   const cycle = await activeCycle();
   let sheet = await GoalSheet.findOne({ employeeId: req.user._id, cycleId: cycle._id });
@@ -76,6 +80,7 @@ const getMyGoalSheet = getOrCreateSheet;
 const submitGoalSheet = asyncHandler(async (req, res) => {
   const sheet = await GoalSheet.findOne({ _id: req.params.sheetId, employeeId: req.user._id });
   if (!sheet) throw new ApiError(404, "SHEET_NOT_FOUND", "Goal sheet not found");
+  if (!isEmployeeEditableSheet(sheet)) throw new ApiError(400, "SHEET_LOCKED", "Only draft or returned goal sheets can be submitted");
   const goals = await Goal.find({ goalSheetId: sheet._id });
   validateGoalSheetRules(goals);
   sheet.approvalStatus = "submitted";
@@ -177,9 +182,14 @@ const addGoal = asyncHandler(async (req, res) => {
     : await GoalSheet.findOne({ employeeId: req.user._id, cycleId: cycle._id });
   if (!sheet && !req.params.sheetId) sheet = await GoalSheet.create({ employeeId: req.user._id, cycleId: cycle._id, approvalStatus: "draft" });
   if (!sheet) throw new ApiError(404, "SHEET_NOT_FOUND", "Goal sheet not found");
-  if (!["draft", "returned"].includes(sheet.approvalStatus) || sheet.isLocked) throw new ApiError(400, "SHEET_LOCKED", "Goal sheet cannot be edited");
-  const count = await Goal.countDocuments({ goalSheetId: sheet._id });
-  if (count >= 8) throw new ApiError(400, "MAX_GOALS", "Maximum 8 goals allowed");
+  if (!isEmployeeEditableSheet(sheet)) throw new ApiError(400, "SHEET_LOCKED", "Goal sheet cannot be edited");
+  const existingGoals = await Goal.find({ goalSheetId: sheet._id }).select("weightage");
+  if (existingGoals.length >= 8) throw new ApiError(400, "MAX_GOALS", "Maximum 8 goals allowed");
+  const currentWeightage = existingGoals.reduce((sum, goal) => sum + Number(goal.weightage || 0), 0);
+  const nextWeightage = Number(req.body.weightage || 0);
+  if (currentWeightage + nextWeightage > 100) {
+    throw new ApiError(400, "TOTAL_WEIGHTAGE_EXCEEDED", `Only ${100 - currentWeightage}% weightage is available`);
+  }
   const goal = await Goal.create({ ...req.body, goalSheetId: sheet._id, employeeId: req.user._id });
   const { totalWeightage } = await recalcTotal(sheet._id);
   res.status(201).json({ success: true, data: { goal, totalWeightage } });
@@ -190,6 +200,7 @@ const updateGoal = asyncHandler(async (req, res) => {
   if (!goal) throw new ApiError(404, "GOAL_NOT_FOUND", "Goal not found");
   const sheet = await GoalSheet.findById(goal.goalSheetId);
   if (req.user.role === "employee" && String(sheet.employeeId) !== String(req.user._id)) throw new ApiError(403, "FORBIDDEN", "Cannot update another employee goal");
+  if (req.user.role === "employee" && !isEmployeeEditableSheet(sheet)) throw new ApiError(400, "SHEET_LOCKED", "Only draft or returned goal sheets can be edited");
   if (sheet.isLocked && req.user.role !== "admin") throw new ApiError(400, "SHEET_LOCKED", "Only admin can edit a locked sheet");
   const payload = { ...req.body };
   if (goal.isShared && req.user.role !== "admin") {
@@ -207,6 +218,7 @@ const deleteGoal = asyncHandler(async (req, res) => {
   if (!goal) throw new ApiError(404, "GOAL_NOT_FOUND", "Goal not found");
   const sheet = await GoalSheet.findById(goal.goalSheetId);
   if (req.user.role === "employee" && String(sheet.employeeId) !== String(req.user._id)) throw new ApiError(403, "FORBIDDEN", "Cannot delete another employee goal");
+  if (req.user.role === "employee" && !isEmployeeEditableSheet(sheet)) throw new ApiError(400, "SHEET_LOCKED", "Only draft or returned goal sheets can be edited");
   if (sheet.isLocked && req.user.role !== "admin") throw new ApiError(400, "SHEET_LOCKED", "Goal sheet is locked");
   await goal.deleteOne();
   const { totalWeightage } = await recalcTotal(sheet._id);

@@ -50,7 +50,7 @@ export default function LoginPage() {
    const submit = async (values) => {
       try {
          const user = await login(values.email, values.password);
-         if (user.role !== "employee") {
+         if (!["employee", "manager"].includes(user.role)) {
             clearToken();
             toast.error("Use the admin portal for this account");
             return;

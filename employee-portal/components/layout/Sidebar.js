@@ -3,19 +3,32 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
+   ClipboardCheck,
+   FileText,
    LayoutDashboard,
    ListChecks,
    Bell,
    LogOut,
    Target,
+   Users,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useRouteLoading } from "./RouteLoadingProvider";
 
-const links = [
+const employeeLinks = [
    ["/dashboard", "Dashboard", LayoutDashboard],
    ["/goals", "My Goals", Target],
    ["/checkin", "Quarterly Check-in", ListChecks],
+   ["/notifications", "Notifications", Bell],
+];
+
+const managerLinks = [
+   ["/dashboard", "Dashboard", LayoutDashboard],
+   ["/team", "My Team", Users],
+   ["/checkins", "Check-ins", ClipboardCheck],
+   ["/shared-goals", "Shared Goals", Target],
+   ["/reports", "Reports", FileText],
    ["/notifications", "Notifications", Bell],
 ];
 
@@ -25,7 +38,9 @@ const isHrefActive = (href, path) =>
 export default function Sidebar() {
    const { user, logout } = useAuth();
    const { unreadCount } = useNotifications();
+   const { startRouteLoading } = useRouteLoading();
    const pathname = usePathname();
+   const links = user?.role === "manager" ? managerLinks : employeeLinks;
    const [optimisticHref, setOptimisticHref] = useState(null);
    const activePath = optimisticHref || pathname;
    const isActive = (href) => isHrefActive(href, activePath);
@@ -49,7 +64,7 @@ export default function Sidebar() {
                </span>
             </div>
             <p className="ml-9 mt-1.5 text-[10px] uppercase tracking-wider text-slate-500">
-               Employee Portal
+               {user?.role === "manager" ? "Manager Portal" : "Employee Portal"}
             </p>
          </div>
          <nav className="flex-1 px-3 py-4">
@@ -68,7 +83,10 @@ export default function Sidebar() {
                      <Link
                         key={href}
                         href={href}
-                        onClick={() => setOptimisticHref(href)}
+                        onClick={() => {
+                           if (!isHrefActive(href, pathname)) startRouteLoading();
+                           setOptimisticHref(href);
+                        }}
                         aria-current={active ? "page" : undefined}
                         className={`group relative z-10 flex h-10 items-center gap-3 rounded-lg px-3 text-[13.5px] font-medium transition-colors duration-200 ${
                            active

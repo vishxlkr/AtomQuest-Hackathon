@@ -15,12 +15,14 @@ import {
    Users,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { useRouteLoading } from "./RouteLoadingProvider";
 
 const isHrefActive = (href, path) =>
    path === href || path?.startsWith(`${href}/`);
 
 export default function Sidebar() {
    const { user, logout } = useAuth();
+   const { startRouteLoading } = useRouteLoading();
    const pathname = usePathname();
    const managerLinks = [
       ["/dashboard", "Dashboard", LayoutDashboard],
@@ -81,7 +83,10 @@ export default function Sidebar() {
                      <Link
                         key={href}
                         href={href}
-                        onClick={() => setOptimisticHref(href)}
+                        onClick={() => {
+                           if (!isHrefActive(href, pathname)) startRouteLoading();
+                           setOptimisticHref(href);
+                        }}
                         aria-current={active ? "page" : undefined}
                         className={`group relative z-10 flex h-10 items-center gap-3 rounded-lg px-3 text-[13.5px] font-medium transition-colors duration-200 ${
                            active

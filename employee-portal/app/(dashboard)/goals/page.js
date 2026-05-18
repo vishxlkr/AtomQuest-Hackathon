@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import toast from "react-hot-toast";
 import api from "../../../lib/api";
 import { useAuth } from "../../../context/AuthContext";
@@ -9,7 +10,7 @@ import Badge from "../../../components/ui/Badge";
 import Card from "../../../components/ui/Card";
 import GoalList from "../../../components/goals/GoalList";
 import WeightageBar from "../../../components/goals/WeightageBar";
-import Spinner from "../../../components/ui/Spinner";
+import CenteredLoader from "../../../components/ui/CenteredLoader";
 import PageHeader from "../../../components/ui/PageHeader";
 import { StatusBadge } from "../../../components/ui/StatusBadge";
 import { Plus, Send } from "lucide-react";
@@ -17,9 +18,22 @@ import { Plus, Send } from "lucide-react";
 export default function GoalsPage() {
   const { sheet, goals, isLoading, meta, error, reload } = useGoals();
   const { user } = useAuth();
-  if (isLoading) return <div className="flex min-h-[320px] items-center justify-center"><Spinner /></div>;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  if (isLoading) return <CenteredLoader />;
   const createSheet = async () => { try { await api.post("/goals/sheet/create"); reload(); } catch (err) { toast.error(err.response?.data?.error?.message || "Could not create goal sheet"); } };
-  const submit = async () => { try { await api.post(`/goals/sheet/${sheet._id}/submit`); toast.success("Submitted for approval"); reload(); } catch (err) { toast.error(err.response?.data?.error?.message || "Submit failed"); } };
+  const submit = async () => {
+    if (!sheet?._id || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await api.post(`/goals/sheet/${sheet._id}/submit`);
+      toast.success("Submitted for approval");
+      await reload();
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || "Submit failed");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   if (meta?.code === "NO_ACTIVE_CYCLE") return <Card><p className="text-[14px] text-slate-400">No active goal cycle is available yet. Ask an admin to create and activate a cycle.</p></Card>;
   if (error) return <Card><p className="mb-4 text-[13px] text-red-400">{error.message}</p><Button onClick={reload}>Retry</Button></Card>;
   if (!sheet) return <Card><p className="mb-4 text-[14px] text-slate-400">Create your goal sheet for the active cycle.</p><Button onClick={createSheet}>Create Goal Sheet</Button></Card>;
@@ -45,9 +59,9 @@ export default function GoalsPage() {
       </Card>
       <div className="flex gap-3">
         {editable && <Link href="/goals/new"><Button><Plus size={14} />Add Goal</Button></Link>}
-        {editable && sheet.totalWeightage === 100 && goals.length > 0 && <Button variant="secondary" onClick={submit}><Send size={14} />Submit for Approval</Button>}
+        {editable && sheet.totalWeightage === 100 && goals.length > 0 && <Button onClick={submit} isLoading={isSubmitting} disabled={isSubmitting}>{!isSubmitting && <Send size={14} />}Submit for Approval</Button>}
       </div>
-      <GoalList goals={goals} currentUserId={user?.id || user?._id} />
+      <GoalList goals={goals} currentUserId={user?.id || user?._id} editable={editable} />
     </div>
   );
 }

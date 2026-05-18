@@ -9,6 +9,16 @@ const { calculateProgressScore } = require("../utils/progressScore");
 const { logAudit } = require("../utils/auditLogger");
 const { createNotification } = require("../utils/notificationService");
 
+async function resolveCheckInQuarter(requestedQuarter) {
+  if (requestedQuarter) return requestedQuarter;
+  const cycle = await Cycle.findOne({ isActive: true });
+  const now = new Date();
+  const activeQuarter = cycle?.quarters?.find((q) => now >= q.windowOpen && now <= q.windowClose);
+  if (activeQuarter?.quarter) return activeQuarter.quarter;
+  const latestStartedQuarter = [...(cycle?.quarters || [])].sort((a, b) => b.windowOpen - a.windowOpen).find((q) => now >= q.windowOpen);
+  return latestStartedQuarter?.quarter || cycle?.quarters?.[0]?.quarter || "Q1";
+}
+
 const updateQuarterlyAchievement = asyncHandler(async (req, res) => {
   const updates = Array.isArray(req.body.items) ? req.body.items : [req.body];
   const saved = [];
@@ -44,20 +54,21 @@ const conductCheckIn = asyncHandler(async (req, res) => {
   const employee = await User.findById(sheet.employeeId);
   if (!employee) throw new ApiError(404, "EMPLOYEE_NOT_FOUND", "Employee not found");
   if (req.user.role === "manager" && String(employee.managerId) !== String(req.user._id)) throw new ApiError(403, "FORBIDDEN", "Not your team member");
+  const quarter = await resolveCheckInQuarter(req.body.quarter);
   const checkIn = await CheckIn.findOneAndUpdate(
-    { goalSheetId: sheet._id, quarter: req.body.quarter },
-    { employeeId: sheet.employeeId, managerId: req.user._id, cycleId: sheet.cycleId, overallComment: req.body.overallComment, goalUpdates: req.body.goalUpdates || [], isCompleted: true, checkInDate: new Date() },
+    { goalSheetId: sheet._id, quarter },
+    { $set: { goalSheetId: sheet._id, employeeId: sheet.employeeId, managerId: req.user._id, cycleId: sheet.cycleId, quarter, overallComment: req.body.overallComment, goalUpdates: req.body.goalUpdates || [], isCompleted: true, checkInDate: new Date() } },
     { new: true, upsert: true, setDefaultsOnInsert: true }
   );
   for (const update of req.body.goalUpdates || []) {
     const goal = await Goal.findById(update.goalId);
     if (!goal) continue;
-    const entry = goal.quarterly.find((q) => q.quarter === req.body.quarter) || { quarter: req.body.quarter, updatedAt: new Date() };
+    const entry = goal.quarterly.find((q) => q.quarter === quarter) || { quarter, updatedAt: new Date() };
     entry.managerComment = update.managerNote || update.comment;
-    if (!goal.quarterly.find((q) => q.quarter === req.body.quarter)) goal.quarterly.push(entry);
+    if (!goal.quarterly.find((q) => q.quarter === quarter)) goal.quarterly.push(entry);
     await goal.save();
   }
-  await createNotification(sheet.employeeId, "CHECKIN_COMPLETED", "Check-in completed", `${req.body.quarter} check-in is complete.`, "/checkin");
+  await createNotification(sheet.employeeId, "CHECKIN_COMPLETED", "Check-in completed", `${quarter} check-in is complete.`, "/checkin");
   res.json({ success: true, data: checkIn });
 });
 
@@ -78,11 +89,11 @@ const getCheckInHistory = asyncHandler(async (req, res) => {
 const getTeamCheckInStatus = asyncHandler(async (req, res) => {
   const employees = await User.find({ managerId: req.user._id });
   const sheets = await GoalSheet.find({ employeeId: { $in: employees.map((e) => e._id) } }).populate("employeeId", "name department employeeId");
-  const quarter = req.query.quarter || "Q1";
+  const quarter = await resolveCheckInQuarter(req.query.quarter);
   const done = await CheckIn.find({ goalSheetId: { $in: sheets.map((s) => s._id) }, quarter, isCompleted: true });
   const doneSet = new Set(done.map((d) => String(d.goalSheetId)));
   const rows = sheets.map((sheet) => ({ sheet, employee: sheet.employeeId, currentQuarterDone: doneSet.has(String(sheet._id)) }));
-  res.json({ success: true, data: { rows, completionPercentage: sheets.length ? Math.round((done.length / sheets.length) * 100) : 0 } });
+  res.json({ success: true, data: { quarter, rows, completionPercentage: sheets.length ? Math.round((done.length / sheets.length) * 100) : 0 } });
 });
 
 module.exports = { updateQuarterlyAchievement, getQuarterlyProgress, conductCheckIn, getCheckInHistory, getTeamCheckInStatus };

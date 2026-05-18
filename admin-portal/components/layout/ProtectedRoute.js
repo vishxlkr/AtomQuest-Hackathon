@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
-import AtomLoader from "../ui/AtomLoader";
+import Spinner from "../ui/Spinner";
 
 export default function ProtectedRoute({ children, adminOnly = false }) {
   const { user, isLoading } = useAuth();
@@ -10,9 +10,9 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
   const pathname = usePathname();
   useEffect(() => {
     if (!isLoading && !user) router.replace("/login");
-    if (!isLoading && user && !["manager", "admin"].includes(user.role)) router.replace("/login");
-    if (!isLoading && user && (adminOnly || pathname.startsWith("/admin")) && user.role !== "admin") router.replace("/dashboard");
+    if (!isLoading && user && user.role !== "admin") router.replace("/login");
+    if (!isLoading && user?.role === "admin" && !pathname.startsWith("/admin")) router.replace("/admin/dashboard");
   }, [isLoading, user, router, adminOnly, pathname]);
-  if (isLoading || !user) return <main className="grid min-h-screen place-items-center bg-[#111118]"><AtomLoader /></main>;
+  if (isLoading || !user || user.role !== "admin" || !pathname.startsWith("/admin")) return <main className="grid min-h-screen place-items-center bg-[#111118]"><Spinner /></main>;
   return children;
 }

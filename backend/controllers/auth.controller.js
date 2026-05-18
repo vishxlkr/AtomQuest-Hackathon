@@ -111,7 +111,7 @@ const handleAzureCallback = asyncHandler(async (req, res) => {
 
   let user = await User.findOne({ $or: [{ email }, { azureOid }] }).select("+password");
   if (!user && requestedPortal === "admin") {
-    return redirectAzureError(res, "admin", "This Microsoft account is not an admin or manager in AtomQuest.");
+    return redirectAzureError(res, "admin", "This Microsoft account is not an admin in AtomQuest.");
   }
   if (user) {
     if (!user.isActive) {
@@ -133,10 +133,10 @@ const handleAzureCallback = asyncHandler(async (req, res) => {
     });
   }
 
-  if (requestedPortal === "admin" && !["admin", "manager"].includes(user.role)) {
+  if (requestedPortal === "admin" && user.role !== "admin") {
     return redirectAzureError(res, "admin", "Use the employee portal for this Microsoft account.");
   }
-  if (requestedPortal === "employee" && user.role !== "employee") {
+  if (requestedPortal === "employee" && !["employee", "manager"].includes(user.role)) {
     return redirectAzureError(res, "employee", "Use the admin portal for this Microsoft account.");
   }
 
