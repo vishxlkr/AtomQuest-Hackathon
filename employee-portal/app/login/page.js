@@ -1,9 +1,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, LockKeyhole, Mail, Target } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, Target } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { z } from "zod";
@@ -13,12 +14,13 @@ import { clearToken } from "../../lib/auth";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: z.string().min(1, "Enter your password"),
 });
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -82,7 +84,16 @@ export default function LoginPage() {
               Password
               <span className="mt-2 flex h-12 items-center gap-3 rounded-lg border border-white/[0.08] bg-[#13131a] px-3 transition focus-within:border-indigo-500/50 focus-within:ring-1 focus-within:ring-indigo-500/20">
                 <LockKeyhole className="h-5 w-5 text-slate-400" />
-                <input className="w-full bg-transparent text-[13px] text-slate-200 outline-none placeholder:text-slate-600" type="password" placeholder="Enter password" autoComplete="current-password" {...register("password")} />
+                <input className="w-full bg-transparent text-[13px] text-slate-200 outline-none placeholder:text-slate-600" type={showPassword ? "text" : "password"} placeholder="Enter password" autoComplete="current-password" {...register("password")} />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-slate-400 transition hover:bg-white/[0.06] hover:text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/40"
+                  onClick={() => setShowPassword((current) => !current)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </span>
               {errors.password && <span className="mt-1 block text-[11px] text-red-400">{errors.password.message}</span>}
             </label>

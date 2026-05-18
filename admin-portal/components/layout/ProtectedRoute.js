@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
+import AtomLoader from "../ui/AtomLoader";
 
 export default function ProtectedRoute({ children, adminOnly = false }) {
   const { user, isLoading } = useAuth();
@@ -12,6 +13,6 @@ export default function ProtectedRoute({ children, adminOnly = false }) {
     if (!isLoading && user && !["manager", "admin"].includes(user.role)) router.replace("/login");
     if (!isLoading && user && (adminOnly || pathname.startsWith("/admin")) && user.role !== "admin") router.replace("/dashboard");
   }, [isLoading, user, router, adminOnly, pathname]);
-  if (isLoading || !user) return <main className="grid min-h-screen place-items-center">Loading...</main>;
+  if (isLoading || !user) return <main className="grid min-h-screen place-items-center bg-[#111118]"><AtomLoader /></main>;
   return children;
 }

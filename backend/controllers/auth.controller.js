@@ -22,7 +22,9 @@ const register = asyncHandler(async (req, res) => {
   const { name, email, password, department } = req.body;
   if (await User.findOne({ email })) throw new ApiError(409, "EMAIL_EXISTS", "Email already exists");
   const employeeId = await generateUserId("employee");
-  const user = await User.create({ employeeId, name, email, password, authProvider: "local", role: "employee", department, managerId: null });
+  const payload = { employeeId, name, email, password, authProvider: "local", role: "employee", managerId: null };
+  if (department) payload.department = department;
+  const user = await User.create(payload);
   res.status(201).json({ success: true, data: user.toSafeObject() });
 });
 

@@ -17,7 +17,7 @@ import { Plus, Send } from "lucide-react";
 export default function GoalsPage() {
   const { sheet, goals, isLoading, meta, error, reload } = useGoals();
   const { user } = useAuth();
-  if (isLoading) return <Spinner />;
+  if (isLoading) return <div className="flex min-h-[320px] items-center justify-center"><Spinner /></div>;
   const createSheet = async () => { try { await api.post("/goals/sheet/create"); reload(); } catch (err) { toast.error(err.response?.data?.error?.message || "Could not create goal sheet"); } };
   const submit = async () => { try { await api.post(`/goals/sheet/${sheet._id}/submit`); toast.success("Submitted for approval"); reload(); } catch (err) { toast.error(err.response?.data?.error?.message || "Submit failed"); } };
   if (meta?.code === "NO_ACTIVE_CYCLE") return <Card><p className="text-[14px] text-slate-400">No active goal cycle is available yet. Ask an admin to create and activate a cycle.</p></Card>;
