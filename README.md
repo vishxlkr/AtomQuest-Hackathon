@@ -33,6 +33,11 @@ AtomQuest is a full-stack Goal Setting & Tracking Portal for employees, managers
    npm run dev
    ```
 
+## Deployed Links
+
+- **Admin/Manager Portal**: https://atom-quest-admin.vercel.app/
+- **Employee Portal**: https://atom-quest-emp.vercel.app/
+
 ## Demo Credentials
 
 | Role     | Email                  | Password     |
