@@ -20,6 +20,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [isMicrosoftLoading, setIsMicrosoftLoading] = useState(false);
   const {
     register,
     handleSubmit,
@@ -44,10 +45,19 @@ export default function LoginPage() {
   };
 
   const handleMicrosoftLogin = async () => {
+    if (isMicrosoftLoading) return;
+    setIsMicrosoftLoading(true);
     try {
       const res = await api.get("/auth/azure/login?portal=admin");
-      window.location.href = res.data.authUrl || res.data.data?.authUrl;
+      const authUrl = res.data?.authUrl || res.data?.data?.authUrl;
+      if (!authUrl) {
+        toast.error("Failed to get Microsoft login URL. Please try again.");
+        setIsMicrosoftLoading(false);
+        return;
+      }
+      window.location.href = authUrl;
     } catch (err) {
+      setIsMicrosoftLoading(false);
       toast.error(err.response?.data?.error?.message || "SSO available in production environment");
     }
   };
@@ -118,7 +128,8 @@ export default function LoginPage() {
 
           <button
             onClick={handleMicrosoftLogin}
-            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-white/[0.08] bg-white/5 px-4 text-[13px] font-semibold text-slate-300 transition hover:border-white/[0.15] hover:bg-white/[0.08]"
+            disabled={isMicrosoftLoading}
+            className="flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-white/[0.08] bg-white/5 px-4 text-[13px] font-semibold text-slate-300 transition hover:border-white/[0.15] hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className="grid h-5 w-5 grid-cols-2 gap-0.5" aria-hidden="true">
               <span className="bg-[#f25022]" />
@@ -126,7 +137,7 @@ export default function LoginPage() {
               <span className="bg-[#00a4ef]" />
               <span className="bg-[#ffb900]" />
             </span>
-            Sign in with Microsoft
+            {isMicrosoftLoading ? "Redirecting..." : "Sign in with Microsoft"}
           </button>
         </div>
       </section>
