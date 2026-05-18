@@ -1,37 +1,39 @@
 "use client";
-import { Suspense } from "react";
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import toast from "react-hot-toast";
-import api from "../../../lib/api";
 import { clearToken, setToken } from "../../../lib/auth";
 
-function CallbackContent() {
-   const params = useSearchParams();
+export default function AuthCallbackPage() {
    const router = useRouter();
+
    useEffect(() => {
-      const token = params.get("token");
-      if (!token) {
-         toast.error("Missing SSO token");
-         router.replace("/login");
-         return;
-      }
+      const handleCallback = async () => {
+         // Get token from URL search params
+         const searchParams = new URLSearchParams(window.location.search);
+         const token = searchParams.get("token");
 
-      // Set token first
-      setToken(token);
+         if (!token) {
+            toast.error("Missing SSO token");
+            router.replace("/login");
+            return;
+         }
 
-      // Create a temporary API instance with the new token in the header
-      const tempApi = axios.create({
-         baseURL:
-            process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1",
-         withCredentials: true,
-         headers: { Authorization: `Bearer ${token}` },
-      });
+         try {
+            // Set token first
+            setToken(token);
 
-      tempApi
-         .get("/auth/me")
-         .then((res) => {
+            // Create a temporary API instance with the new token in the header
+            const tempApi = axios.create({
+               baseURL:
+                  process.env.NEXT_PUBLIC_API_URL ||
+                  "http://localhost:5000/api/v1",
+               withCredentials: true,
+               headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const res = await tempApi.get("/auth/me");
             const user = res.data.data;
             if (!["admin", "manager"].includes(user.role)) {
                clearToken();
@@ -42,30 +44,19 @@ function CallbackContent() {
             router.replace(
                user.role === "admin" ? "/admin/dashboard" : "/dashboard",
             );
-         })
-         .catch(() => {
+         } catch (err) {
             clearToken();
             toast.error("Unable to complete SSO login");
             router.replace("/login");
-         });
-   }, []);
+         }
+      };
+
+      handleCallback();
+   }, [router]);
+
    return (
       <main className="grid min-h-screen place-items-center text-sm text-slate-600">
          Signing you in...
       </main>
-   );
-}
-
-export default function AuthCallbackPage() {
-   return (
-      <Suspense
-         fallback={
-            <main className="grid min-h-screen place-items-center text-sm text-slate-600">
-               Signing you in...
-            </main>
-         }
-      >
-         <CallbackContent />
-      </Suspense>
    );
 }
