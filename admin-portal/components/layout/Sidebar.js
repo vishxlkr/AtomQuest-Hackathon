@@ -109,25 +109,31 @@ export default function Sidebar() {
             <button
                type="button"
                onClick={logout}
-               className="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-transparent px-2 py-2 text-left transition-all duration-200 hover:border-white/[0.08] hover:bg-[#1c1c28] focus:outline-none focus-visible:border-indigo-500/40 focus-visible:bg-[#1c1c28] focus-visible:ring-2 focus-visible:ring-indigo-500/20"
+               className="group relative flex h-12 w-full cursor-pointer items-center rounded-lg border border-transparent px-2 text-left transition-all duration-200 hover:border-white/[0.08] hover:bg-[#1c1c28] focus:outline-none focus-visible:border-indigo-500/40 focus-visible:bg-[#1c1c28] focus-visible:ring-2 focus-visible:ring-indigo-500/20"
                aria-label="Logout"
             >
-               <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
-                  <span className="text-[11px] font-bold text-white">
-                     {user?.name?.charAt(0).toUpperCase()}
-                  </span>
+               <div className="flex w-full items-center gap-2.5 transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0">
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
+                     <span className="text-[11px] font-bold text-white">
+                        {user?.name?.charAt(0).toUpperCase()}
+                     </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                     <p className="truncate text-[12px] font-medium text-slate-300">
+                        {user?.name}
+                     </p>
+                     <p className="text-[10px] capitalize text-slate-500">
+                        {user?.role}
+                     </p>
+                  </div>
+                  <div className="flex-shrink-0 text-slate-500">
+                     <LogOut size={13} />
+                  </div>
                </div>
-               <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-medium text-slate-300 transition-colors duration-200 group-hover:text-white">
-                     {user?.name}
-                  </p>
-                  <p className="text-[10px] capitalize text-slate-500 transition-colors duration-200 group-hover:text-slate-300">
-                     {user?.role}
-                  </p>
-               </div>
-               <div className="flex-shrink-0 text-slate-500 transition-colors duration-200 group-hover:text-red-300">
-                  <LogOut size={13} />
-               </div>
+               <span className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-[13px] font-semibold text-red-300 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <LogOut size={15} />
+                  Logout
+               </span>
             </button>
          </div>
       </aside>
