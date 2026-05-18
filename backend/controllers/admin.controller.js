@@ -11,6 +11,8 @@ const { logAudit } = require("../utils/auditLogger");
 const { createNotification } = require("../utils/notificationService");
 const { generateUserId } = require("../utils/userIdGenerator");
 
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const createCycle = asyncHandler(async (req, res) => {
   const cycle = new Cycle({ ...req.body, isActive: true, createdBy: req.user?._id });
   await cycle.validate();
@@ -124,9 +126,14 @@ const getAuditLogs = asyncHandler(async (req, res) => {
   if (req.query.entityType) filter.entityType = req.query.entityType;
   if (req.query.entityId) filter.entityId = req.query.entityId;
   if (req.query.changedBy) filter.changedBy = req.query.changedBy;
+  if (req.query.action) filter.action = new RegExp(escapeRegex(req.query.action), "i");
   if (req.query.from || req.query.to) filter.timestamp = {};
   if (req.query.from) filter.timestamp.$gte = new Date(req.query.from);
-  if (req.query.to) filter.timestamp.$lte = new Date(req.query.to);
+  if (req.query.to) {
+    const to = new Date(req.query.to);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(req.query.to)) to.setHours(23, 59, 59, 999);
+    filter.timestamp.$lte = to;
+  }
   const page = Number(req.query.page || 1);
   const limit = Number(req.query.limit || 20);
   const [items, total] = await Promise.all([AuditLog.find(filter).populate("changedBy", "name email").sort({ timestamp: -1 }).skip((page - 1) * limit).limit(limit), AuditLog.countDocuments(filter)]);
