@@ -107,8 +107,9 @@ export default function Sidebar() {
          </nav>
          <div className="border-t border-white/5 px-3 pb-4 pt-3">
             <button
+               type="button"
                onClick={logout}
-               className="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-200 hover:bg-white/5"
+               className="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg border border-transparent px-2 py-2 text-left transition-all duration-200 hover:border-white/[0.08] hover:bg-[#1c1c28] focus:outline-none focus-visible:border-indigo-500/40 focus-visible:bg-[#1c1c28] focus-visible:ring-2 focus-visible:ring-indigo-500/20"
                aria-label="Logout"
             >
                <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
@@ -117,14 +118,14 @@ export default function Sidebar() {
                   </span>
                </div>
                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-medium text-slate-300">
+                  <p className="truncate text-[12px] font-medium text-slate-300 transition-colors duration-200 group-hover:text-white">
                      {user?.name}
                   </p>
-                  <p className="text-[10px] capitalize text-slate-500">
+                  <p className="text-[10px] capitalize text-slate-500 transition-colors duration-200 group-hover:text-slate-300">
                      {user?.role}
                   </p>
                </div>
-               <div className="flex-shrink-0 text-slate-600 transition-colors duration-200 group-hover:text-slate-400">
+               <div className="flex-shrink-0 text-slate-500 transition-colors duration-200 group-hover:text-red-300">
                   <LogOut size={13} />
                </div>
             </button>
