@@ -12,6 +12,7 @@ router.get("/users", ctrl.getAllUsers);
 router.post("/users", ctrl.createUser);
 router.patch("/users/:id", ctrl.updateUser);
 router.patch("/users/:id/deactivate", ctrl.deactivateUser);
+router.delete("/users/:id", ctrl.deleteUser);
 router.patch("/goalsheets/:sheetId/unlock", ctrl.unlockGoalSheet);
 router.get("/audit-logs", ctrl.getAuditLogs);
 router.get("/dashboard", ctrl.getCompletionDashboard);

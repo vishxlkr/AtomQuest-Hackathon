@@ -77,9 +77,21 @@ const updateUser = asyncHandler(async (req, res) => {
   await user.save();
   res.json({ success: true, data: user.toSafeObject() });
 });
-const deactivateUser = asyncHandler(async (req, res) => {
-  const user = await User.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
+const deactivateUserById = async (userId, currentUserId) => {
+  if (String(userId) === String(currentUserId)) throw new ApiError(400, "CANNOT_DELETE_SELF", "You cannot delete your own account");
+  const user = await User.findByIdAndUpdate(userId, { isActive: false, refreshToken: null }, { new: true });
   if (!user) throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  if (user.role === "manager") await User.updateMany({ managerId: user._id }, { managerId: null });
+  return user;
+};
+
+const deactivateUser = asyncHandler(async (req, res) => {
+  const user = await deactivateUserById(req.params.id, req.user._id);
+  res.json({ success: true, data: user.toSafeObject() });
+});
+
+const deleteUser = asyncHandler(async (req, res) => {
+  const user = await deactivateUserById(req.params.id, req.user._id);
   res.json({ success: true, data: user.toSafeObject() });
 });
 
@@ -143,4 +155,4 @@ const listEscalationLogs = asyncHandler(async (req, res) => {
   res.json({ success: true, data: logs });
 });
 
-module.exports = { createCycle, getActiveCycle, getCycles, activateCycle, getAllUsers, createUser, updateUser, deactivateUser, unlockGoalSheet, getAuditLogs, getCompletionDashboard, getOrgHierarchy, listEscalationRules, createEscalationRule, updateEscalationRule, deleteEscalationRule, listEscalationLogs };
+module.exports = { createCycle, getActiveCycle, getCycles, activateCycle, getAllUsers, createUser, updateUser, deactivateUser, deleteUser, unlockGoalSheet, getAuditLogs, getCompletionDashboard, getOrgHierarchy, listEscalationRules, createEscalationRule, updateEscalationRule, deleteEscalationRule, listEscalationLogs };
