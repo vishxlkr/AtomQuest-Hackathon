@@ -12,7 +12,7 @@ The backend is a stateless Express REST API. Access tokens are sent as `Authoriz
 
 Two independent Next.js App Router frontends call the same API:
 
-- `employee-portal` for employees creating goals and logging quarterly achievements.
-- `admin-portal` for managers reviewing goals, conducting check-ins, and admins managing cycles, users, audit logs, reports, analytics, and escalations.
+- `employee-portal` for employees creating goals and logging quarterly achievements, and managers reviewing goals, conducting check-ins, and tracking team progress.
+- `admin-portal` for the separate admin interface covering cycles, users, audit logs, reports, analytics, and escalations.
 
 MongoDB collections include users, cycles, goal sheets, goals, check-ins, audit logs, notifications, escalation rules, and escalation logs. Cron jobs run reminder and escalation checks for goal submission, goal approval, and quarterly check-in completion.

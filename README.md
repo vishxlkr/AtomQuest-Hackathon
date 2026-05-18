@@ -1,9 +1,9 @@
 # AtomQuest Hackathon 1.0
 
-AtomQuest is a full-stack Goal Setting and Tracking Portal for employees, managers, and HR admins. The project is split into one Express/MongoDB API and two Next.js 14 frontends:
+AtomQuest is a full-stack Goal Setting and Tracking Portal for employees, managers, and admins. The project is split into one Express/MongoDB API and two Next.js 14 frontends:
 
 - `employee-portal`: employee and manager workflows for goal sheets, approvals, check-ins, notifications, and team progress.
-- `admin-portal`: HR/admin workflows for users, cycles, audit logs, reports, escalation rules, and organization-level analytics.
+- `admin-portal`: separate admin interface for users, cycles, audit logs, reports, escalation rules, and organization-level analytics.
 - `backend`: authentication, goal management, reporting, notifications, email hooks, scheduled jobs, and escalation APIs.
 
 ## Tech Stack
@@ -22,7 +22,7 @@ AtomQuest is a full-stack Goal Setting and Tracking Portal for employees, manage
 
 ```text
 .
-|-- admin-portal/       # Next.js admin and HR portal
+|-- admin-portal/       # Separate Next.js admin portal
 |-- backend/            # Express API, models, routes, controllers, jobs
 |-- docs/               # Supporting documentation
 |-- employee-portal/    # Next.js employee and manager portal
@@ -86,6 +86,8 @@ Default local URLs:
 | Backend API | `http://localhost:5000` |
 | Employee/Manager Portal | `http://localhost:3000` |
 | Admin Portal | `http://localhost:3001` |
+
+The employee and manager roles share the Employee/Manager Portal. Admin users use the separate Admin Portal.
 
 You can also run each app separately:
 
