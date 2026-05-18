@@ -4,6 +4,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import api from "../../../../lib/api";
 import CheckInForm from "../../../../components/checkin/CheckInForm";
+import CenteredLoader from "../../../../components/ui/CenteredLoader";
 
 function buildCheckInValues(sheet, checkIn, quarter) {
   const savedUpdates = checkIn?.goalUpdates || [];
@@ -23,7 +24,9 @@ export default function CheckInSheetPage() {
   const [values, setValues] = useState({});
   const [quarter, setQuarter] = useState(searchParams.get("quarter") || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
+    setIsLoading(true);
     Promise.all([
       api.get("/goals/team/sheets"),
       api.get(`/checkin/${sheetId}/history`),
@@ -37,7 +40,8 @@ export default function CheckInSheetPage() {
         setSheet(nextSheet);
         setValues(buildCheckInValues(nextSheet, checkIn, nextQuarter));
       })
-      .catch((err) => toast.error(err.response?.data?.error?.message || "Could not load check-in"));
+      .catch((err) => toast.error(err.response?.data?.error?.message || "Could not load check-in"))
+      .finally(() => setIsLoading(false));
   }, [sheetId, quarter]);
   const submit = async () => {
     if (isSubmitting) return;
@@ -52,5 +56,6 @@ export default function CheckInSheetPage() {
       setIsSubmitting(false);
     }
   };
+  if (isLoading) return <CenteredLoader label="Loading check-in..." />;
   return <div className="space-y-4"><h2 className="text-2xl font-semibold">Conduct Check-in{quarter ? ` - ${quarter}` : ""}</h2><CheckInForm sheet={sheet} quarter={quarter} values={values} setValues={setValues} onSubmit={submit} isSubmitting={isSubmitting} /></div>;
 }

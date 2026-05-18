@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import api from "../../../../lib/api";
 import Button from "../../../../components/ui/Button";
+import CenteredLoader from "../../../../components/ui/CenteredLoader";
 import Modal from "../../../../components/ui/Modal";
 import Table from "../../../../components/ui/Table";
 import Badge from "../../../../components/ui/Badge";
@@ -11,7 +12,8 @@ export default function CyclesPage() {
   const [open, setOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [activatingId, setActivatingId] = useState(null);
-  const load = () => api.get("/admin/cycles").then((res) => setCycles(res.data.data));
+  const [isLoading, setIsLoading] = useState(true);
+  const load = () => api.get("/admin/cycles").then((res) => setCycles(res.data.data)).finally(() => setIsLoading(false));
   useEffect(() => { load(); }, []);
   const create = async (payload) => {
     if (creating) return;
@@ -34,5 +36,6 @@ export default function CyclesPage() {
       setActivatingId(null);
     }
   };
+  if (isLoading) return <CenteredLoader label="Loading cycles..." />;
   return <div className="space-y-4"><div className="flex justify-between"><h2 className="text-2xl font-semibold">Cycles</h2><Button onClick={() => setOpen(true)}>Create New Cycle</Button></div><Table rows={cycles} columns={[{ key: "name", label: "Name" }, { key: "year", label: "Year" }, { key: "status", label: "Status", render: (r) => <Badge tone={r.isActive ? "green" : "gray"}>{r.isActive ? "Active" : "Inactive"}</Badge> }, { key: "window", label: "Goal Setting Window", render: (r) => `${new Date(r.goalSettingOpen).toLocaleDateString()} - ${new Date(r.goalSettingClose).toLocaleDateString()}` }, { key: "action", label: "Action", render: (r) => !r.isActive && <Button variant="secondary" isLoading={activatingId === r._id} disabled={Boolean(activatingId)} onClick={() => activate(r._id)}>{activatingId === r._id ? "Activating" : "Activate"}</Button> }]} /><Modal open={open} title="Create Cycle" onClose={() => { if (!creating) setOpen(false); }}><CycleForm onSubmit={create} isSubmitting={creating} /></Modal></div>;
 }

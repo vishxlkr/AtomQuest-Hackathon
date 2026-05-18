@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import api from "../../../../lib/api";
 import UserTable from "../../../../components/admin/UserTable";
 import Button from "../../../../components/ui/Button";
+import CenteredLoader from "../../../../components/ui/CenteredLoader";
 import Modal from "../../../../components/ui/Modal";
 
 export default function UsersPage() {
@@ -19,6 +20,7 @@ export default function UsersPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [managerUpdatingId, setManagerUpdatingId] = useState(null);
   const [promotingManager, setPromotingManager] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const buildUserQuery = (role) => {
     const params = new URLSearchParams({ role, isActive: "true", limit: "100" });
@@ -27,14 +29,20 @@ export default function UsersPage() {
   };
 
   const load = async () => {
-    const [employeeRes, managerRes, managerOptionsRes] = await Promise.all([
-      api.get(`/admin/users?${buildUserQuery("employee")}`),
-      api.get(`/admin/users?${buildUserQuery("manager")}`),
-      api.get("/admin/users?role=manager&isActive=true&limit=100")
-    ]);
-    setEmployees(employeeRes.data.data.items);
-    setManagers(managerRes.data.data.items);
-    setManagerOptions(managerOptionsRes.data.data.items);
+    try {
+      const [employeeRes, managerRes, managerOptionsRes] = await Promise.all([
+        api.get(`/admin/users?${buildUserQuery("employee")}`),
+        api.get(`/admin/users?${buildUserQuery("manager")}`),
+        api.get("/admin/users?role=manager&isActive=true&limit=100")
+      ]);
+      setEmployees(employeeRes.data.data.items);
+      setManagers(managerRes.data.data.items);
+      setManagerOptions(managerOptionsRes.data.data.items);
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || "Could not load users");
+    } finally {
+      setIsInitialLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [search]);
@@ -120,6 +128,8 @@ export default function UsersPage() {
       setPromotingManager(false);
     }
   };
+
+  if (isInitialLoading) return <CenteredLoader label="Loading users..." />;
 
   return (
     <div className="space-y-5">

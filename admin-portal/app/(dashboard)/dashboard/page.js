@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
 import api from "../../../lib/api";
 import Card from "../../../components/ui/Card";
+import CenteredLoader from "../../../components/ui/CenteredLoader";
 import PageHeader from "../../../components/ui/PageHeader";
 import { CheckCircle2, ClipboardCheck, FileText, Target, Users } from "lucide-react";
 export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   useEffect(() => { api.get("/reports/completion-dashboard").then((res) => setData(res.data.data)); }, []);
+  if (!data) return <CenteredLoader label="Loading dashboard..." />;
   const stats = user?.role === "admin"
     ? [["Total employees", data?.totalEmployees, Users], ["Submitted", data?.submitted, ClipboardCheck], ["Approved", data?.approved, CheckCircle2], ["Draft", data?.draft, FileText], ["Returned", data?.returned, Target], ["Completion %", data?.totalEmployees ? Math.round((data.approved / data.totalEmployees) * 100) : 0, CheckCircle2]]
     : [["Team size", data?.totalEmployees, Users], ["Submitted", data?.submitted, ClipboardCheck], ["Approved", data?.approved, CheckCircle2], ["My check-ins done", data?.quarterlyCompletion?.Q1?.done || 0, Target]];

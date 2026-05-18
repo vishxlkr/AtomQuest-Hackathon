@@ -19,6 +19,7 @@ import {
 import { ArrowDownRight, ArrowUpRight, Search } from "lucide-react";
 import api from "../../../../lib/api";
 import Card from "../../../../components/ui/Card";
+import CenteredLoader from "../../../../components/ui/CenteredLoader";
 
 const quarters = ["Q1", "Q2", "Q3", "Q4"];
 const palette = ["#4f46e5", "#10b981", "#f59e0b", "#f43f5e", "#8b5cf6", "#06b6d4", "#14b8a6", "#f97316"];
@@ -94,7 +95,7 @@ export default function AnalyticsPage() {
   }, [data, employeeSearch]);
 
   if (error) return <Card><p className="text-sm text-red-600">{error}</p></Card>;
-  if (!data) return <div className="space-y-5">{Array.from({ length: 5 }).map((_, index) => <div key={index} className="h-32 animate-pulse rounded-lg bg-slate-200" />)}</div>;
+  if (!data) return <CenteredLoader label="Loading analytics..." />;
 
   return (
     <div className="space-y-5">

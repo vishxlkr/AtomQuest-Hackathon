@@ -84,7 +84,8 @@ export default function Sidebar() {
                         key={href}
                         href={href}
                         onClick={() => {
-                           if (!isHrefActive(href, pathname)) startRouteLoading();
+                           if (!isHrefActive(href, pathname))
+                              startRouteLoading();
                            setOptimisticHref(href);
                         }}
                         aria-current={active ? "page" : undefined}
@@ -107,7 +108,7 @@ export default function Sidebar() {
          <div className="border-t border-white/5 px-3 pb-4 pt-3">
             <button
                onClick={logout}
-               className="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-white/5"
+               className="group flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2 py-2 transition-colors duration-200 hover:bg-white/5"
                aria-label="Logout"
             >
                <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600">
@@ -123,7 +124,7 @@ export default function Sidebar() {
                      {user?.role}
                   </p>
                </div>
-               <div className="flex-shrink-0 text-slate-600 transition-colors group-hover:text-slate-400">
+               <div className="flex-shrink-0 text-slate-600 transition-colors duration-200 group-hover:text-slate-400">
                   <LogOut size={13} />
                </div>
             </button>

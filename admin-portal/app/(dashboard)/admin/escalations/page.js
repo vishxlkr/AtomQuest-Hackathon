@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, Plus, Trash2, X } from "lucide-react";
 import api from "../../../../lib/api";
 import Button from "../../../../components/ui/Button";
 import Card from "../../../../components/ui/Card";
+import CenteredLoader from "../../../../components/ui/CenteredLoader";
 
 const events = [
   ["GOAL_NOT_SUBMITTED", "Employee has not submitted goals"],
@@ -37,15 +38,17 @@ export default function EscalationsPage() {
   const [togglingId, setTogglingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [resolvingId, setResolvingId] = useState(null);
+  const [rulesLoaded, setRulesLoaded] = useState(false);
+  const [logsLoaded, setLogsLoaded] = useState(false);
 
-  const loadRules = () => api.get("/escalations/rules").then((res) => setRules(res.data.data));
+  const loadRules = () => api.get("/escalations/rules").then((res) => setRules(res.data.data)).finally(() => setRulesLoaded(true));
   const loadLogs = () => {
     const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== ""));
     return api.get("/escalations/logs", { params }).then((res) => {
       const payload = res.data.data;
       setLogs(payload.items || payload);
       setLogMeta(payload);
-    });
+    }).finally(() => setLogsLoaded(true));
   };
 
   useEffect(() => { loadRules(); }, []);
@@ -116,6 +119,8 @@ export default function EscalationsPage() {
     setForm({ triggerEvent: rule.triggerEvent, thresholdDays: rule.thresholdDays, escalateTo: rule.escalateTo, description: rule.description || "", isActive: rule.isActive });
     setShowModal(true);
   };
+
+  if (!rulesLoaded || !logsLoaded) return <CenteredLoader label="Loading escalations..." />;
 
   return (
     <div className="space-y-5">

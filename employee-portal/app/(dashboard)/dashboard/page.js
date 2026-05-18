@@ -6,6 +6,7 @@ import { useGoals } from "../../../hooks/useGoals";
 import api from "../../../lib/api";
 import Card from "../../../components/ui/Card";
 import Badge from "../../../components/ui/Badge";
+import CenteredLoader from "../../../components/ui/CenteredLoader";
 import WeightageBar from "../../../components/goals/WeightageBar";
 import PageHeader from "../../../components/ui/PageHeader";
 import { Calendar, CalendarDays, CheckCircle2, ClipboardCheck, Clock, FileText, Target, Users } from "lucide-react";
@@ -19,6 +20,7 @@ export default function DashboardPage() {
 function ManagerDashboard({ user }) {
   const [data, setData] = useState(null);
   useEffect(() => { api.get("/reports/completion-dashboard").then((res) => setData(res.data.data)); }, []);
+  if (!data) return <CenteredLoader label="Loading dashboard..." />;
   const stats = [
     ["Team size", data?.totalEmployees, Users],
     ["Submitted", data?.submitted, ClipboardCheck],
@@ -49,7 +51,8 @@ function ManagerDashboard({ user }) {
 }
 
 function EmployeeDashboard({ user }) {
-  const { sheet, goals } = useGoals();
+  const { sheet, goals, isLoading } = useGoals();
+  if (isLoading) return <CenteredLoader label="Loading dashboard..." />;
   const approved = sheet?.approvalStatus === "approved" ? goals.length : 0;
   const pending = sheet?.approvalStatus === "submitted" ? 1 : 0;
   const totalWeightage = sheet?.totalWeightage || goals.reduce((sum, goal) => sum + Number(goal.weightage || 0), 0);
