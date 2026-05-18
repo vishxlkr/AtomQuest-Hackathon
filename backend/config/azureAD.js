@@ -1,4 +1,4 @@
-const { ConfidentialClientApplication } = require("@azure/msal-node");
+import { ConfidentialClientApplication } from "@azure/msal-node";
 
 function getMsalConfig() {
   return {
@@ -14,4 +14,4 @@ function getMsalClient() {
   return new ConfidentialClientApplication(getMsalConfig());
 }
 
-module.exports = { getMsalConfig, getMsalClient };
+export { getMsalConfig, getMsalClient };

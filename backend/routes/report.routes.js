@@ -1,6 +1,6 @@
-const express = require("express");
-const ctrl = require("../controllers/report.controller");
-const { verifyToken, requireRole } = require("../middleware/auth");
+import express from "express";
+import * as ctrl from "../controllers/report.controller.js";
+import { verifyToken, requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 router.use(verifyToken);
@@ -15,4 +15,4 @@ router.get("/analytics/managers", requireRole("admin"), ctrl.getManagerEffective
 router.get("/goal-distribution", requireRole("manager", "admin"), ctrl.getGoalDistribution);
 router.get("/manager-effectiveness", requireRole("admin"), ctrl.getManagerEffectiveness);
 
-module.exports = router;
+export default router;

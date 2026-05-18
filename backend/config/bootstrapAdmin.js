@@ -1,4 +1,4 @@
-const User = require("../models/User");
+import User from "../models/User.js";
 
 async function ensureEnvAdmin() {
    const email = String(process.env.ADMIN_EMAIL || "").trim().toLowerCase();
@@ -41,4 +41,4 @@ async function ensureEnvAdmin() {
    console.log(`Admin user updated from env: ${email}`);
 }
 
-module.exports = { ensureEnvAdmin };
+export { ensureEnvAdmin };

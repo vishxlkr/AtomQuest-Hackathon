@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { UOM_TYPES, GOAL_STATUSES, PROGRESS_STATUSES, QUARTERS } = require("../config/constants");
+import mongoose from "mongoose";
+import { UOM_TYPES, GOAL_STATUSES, PROGRESS_STATUSES, QUARTERS } from "../config/constants.js";
 
 const quarterlySchema = new mongoose.Schema(
   {
@@ -36,4 +36,4 @@ const goalSchema = new mongoose.Schema(
 
 goalSchema.index({ title: "text", thrustArea: "text" });
 
-module.exports = mongoose.model("Goal", goalSchema);
+export default mongoose.model("Goal", goalSchema);

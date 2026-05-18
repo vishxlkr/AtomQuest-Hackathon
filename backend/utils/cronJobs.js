@@ -1,12 +1,12 @@
-const cron = require("node-cron");
-const Cycle = require("../models/Cycle");
-const User = require("../models/User");
-const GoalSheet = require("../models/GoalSheet");
-const CheckIn = require("../models/CheckIn");
-const { createNotification } = require("./notificationService");
-const { sendCheckInReminderEmail } = require("./emailService");
-const { sendCheckInDueTeams } = require("./teamsNotifier");
-const { runEscalations } = require("./escalationRunner");
+import cron from "node-cron";
+import Cycle from "../models/Cycle.js";
+import User from "../models/User.js";
+import GoalSheet from "../models/GoalSheet.js";
+import CheckIn from "../models/CheckIn.js";
+import { createNotification } from "./notificationService.js";
+import { sendCheckInReminderEmail } from "./emailService.js";
+import { sendCheckInDueTeams } from "./teamsNotifier.js";
+import { runEscalations } from "./escalationRunner.js";
 
 async function goalSettingReminders() {
   const cycle = await Cycle.findOne({ isActive: true });
@@ -72,4 +72,4 @@ function startCronJobs() {
   console.log("Cron jobs started");
 }
 
-module.exports = { startCronJobs, goalSettingReminders, checkInReminders, runEscalations };
+export { startCronJobs, goalSettingReminders, checkInReminders, runEscalations };

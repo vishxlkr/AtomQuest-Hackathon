@@ -101,6 +101,7 @@ npm run admin
 
 - **Admin Portal**: https://atom-quest-admin.vercel.app/
 - **Employee/Manager Portal**: https://atom-quest-emp.vercel.app/
+- **Microsoft Teams Channel**: https://teams.cloud.microsoft/l/team/19%3A-ZzFXCk2-LWLh60sLilrxkCEwG1kZge3WTMkEselbqs1%40thread.tacv2/conversations?groupId=d5297cc7-24b4-495d-92e3-5e80a9c48b03&tenantId=bad12864-913e-4b99-87d6-b8d2ad459e27
 
 ## Demo Credentials
 

@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { QUARTERS } = require("../config/constants");
+import mongoose from "mongoose";
+import { QUARTERS } from "../config/constants.js";
 
 const checkInSchema = new mongoose.Schema(
   {
@@ -18,4 +18,4 @@ const checkInSchema = new mongoose.Schema(
 
 checkInSchema.index({ goalSheetId: 1, quarter: 1 }, { unique: true });
 
-module.exports = mongoose.model("CheckIn", checkInSchema);
+export default mongoose.model("CheckIn", checkInSchema);

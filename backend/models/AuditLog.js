@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const auditLogSchema = new mongoose.Schema({
   entityType: { type: String, enum: ["goal", "goalsheet", "cycle", "user"], index: true },
@@ -11,4 +11,4 @@ const auditLogSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now, index: true }
 });
 
-module.exports = mongoose.model("AuditLog", auditLogSchema);
+export default mongoose.model("AuditLog", auditLogSchema);

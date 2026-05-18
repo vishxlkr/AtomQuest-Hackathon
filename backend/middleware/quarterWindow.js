@@ -1,6 +1,6 @@
-const Cycle = require("../models/Cycle");
-const ApiError = require("../utils/apiError");
-const asyncHandler = require("../utils/asyncHandler");
+import Cycle from "../models/Cycle.js";
+import ApiError from "../utils/apiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 const enforceQuarterWindow = asyncHandler(async (req, res, next) => {
   const cycle = await Cycle.findOne({ isActive: true });
@@ -14,4 +14,4 @@ const enforceQuarterWindow = asyncHandler(async (req, res, next) => {
   next();
 });
 
-module.exports = { enforceQuarterWindow };
+export { enforceQuarterWindow };

@@ -1,5 +1,5 @@
-const User = require("../models/User");
-const asyncHandler = require("../utils/asyncHandler");
+import User from "../models/User.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 const listEmployees = asyncHandler(async (req, res) => {
   const filter = { role: "employee", isActive: true };
@@ -7,4 +7,4 @@ const listEmployees = asyncHandler(async (req, res) => {
   res.json({ success: true, data: await User.find(filter).select("employeeId name email department managerId") });
 });
 
-module.exports = { listEmployees };
+export { listEmployees };

@@ -1,4 +1,4 @@
-const nodemailer = require("nodemailer");
+import nodemailer from "nodemailer";
 
 function getTransporter() {
   if (!process.env.SMTP_USER) return null;
@@ -207,7 +207,7 @@ async function sendEscalationEmail(args, legacySubject, legacyBody) {
   });
 }
 
-module.exports = {
+export {
   getBaseTemplate,
   sendGoalSubmittedEmail,
   sendGoalApprovedEmail,

@@ -1,15 +1,30 @@
-const EscalationRule = require("../models/EscalationRule");
-const EscalationLog = require("../models/EscalationLog");
-const asyncHandler = require("../utils/asyncHandler");
-const ApiError = require("../utils/apiError");
+import EscalationRule from "../models/EscalationRule.js";
+import EscalationLog from "../models/EscalationLog.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import ApiError from "../utils/apiError.js";
 
 const VALID_EVENTS = ["GOAL_NOT_SUBMITTED", "GOAL_NOT_APPROVED", "CHECKIN_NOT_DONE"];
-const VALID_TARGETS = ["manager", "skip_level", "admin"];
+const VALID_TARGETS = ["employee", "manager", "skip_level", "hr", "admin"];
+
+function normalizeEscalationChain(body) {
+  const source = Array.isArray(body.escalationChain) && body.escalationChain.length
+    ? body.escalationChain
+    : [{ target: body.escalateTo || "manager", afterDays: body.thresholdDays }];
+  const chain = source.map((stage) => ({
+    target: stage.target,
+    afterDays: Number(stage.afterDays)
+  }));
+  chain.forEach((stage) => {
+    if (!VALID_TARGETS.includes(stage.target)) throw new ApiError(400, "INVALID_TARGET", "Invalid escalation target");
+    if (!Number(stage.afterDays) || Number(stage.afterDays) < 1) throw new ApiError(400, "INVALID_THRESHOLD", "Stage days must be at least 1");
+  });
+  chain.sort((a, b) => a.afterDays - b.afterDays);
+  return chain;
+}
 
 function validateRulePayload(body) {
   if (!VALID_EVENTS.includes(body.triggerEvent)) throw new ApiError(400, "INVALID_TRIGGER", "Invalid trigger event");
-  if (!Number(body.thresholdDays) || Number(body.thresholdDays) < 1) throw new ApiError(400, "INVALID_THRESHOLD", "Threshold days must be at least 1");
-  if (!VALID_TARGETS.includes(body.escalateTo)) throw new ApiError(400, "INVALID_TARGET", "Invalid escalation target");
+  return normalizeEscalationChain(body);
 }
 
 const getRules = asyncHandler(async (req, res) => {
@@ -17,22 +32,36 @@ const getRules = asyncHandler(async (req, res) => {
 });
 
 const createRule = asyncHandler(async (req, res) => {
-  validateRulePayload(req.body);
-  const rule = await EscalationRule.create({ ...req.body, thresholdDays: Number(req.body.thresholdDays), createdBy: req.user._id });
+  const escalationChain = validateRulePayload(req.body);
+  const rule = await EscalationRule.create({
+    ...req.body,
+    escalationChain,
+    thresholdDays: escalationChain[0].afterDays,
+    escalateTo: escalationChain[0].target === "employee" ? "manager" : escalationChain[0].target,
+    createdBy: req.user._id
+  });
   res.status(201).json({ success: true, data: rule });
 });
 
 const updateRule = asyncHandler(async (req, res) => {
   const existing = await EscalationRule.findById(req.params.id);
   if (!existing) throw new ApiError(404, "RULE_NOT_FOUND", "Escalation rule not found");
-  if (req.body.triggerEvent || req.body.thresholdDays || req.body.escalateTo) {
-    validateRulePayload({
+  let escalationChain;
+  if (req.body.triggerEvent || req.body.thresholdDays || req.body.escalateTo || req.body.escalationChain) {
+    escalationChain = validateRulePayload({
       triggerEvent: req.body.triggerEvent || existing.triggerEvent,
       thresholdDays: req.body.thresholdDays || existing.thresholdDays,
-      escalateTo: req.body.escalateTo || existing.escalateTo
+      escalateTo: req.body.escalateTo || existing.escalateTo,
+      escalationChain: req.body.escalationChain || existing.escalationChain
     });
   }
-  const rule = await EscalationRule.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  const update = { ...req.body };
+  if (escalationChain) {
+    update.escalationChain = escalationChain;
+    update.thresholdDays = escalationChain[0].afterDays;
+    update.escalateTo = escalationChain[0].target === "employee" ? "manager" : escalationChain[0].target;
+  }
+  const rule = await EscalationRule.findByIdAndUpdate(req.params.id, update, { new: true, runValidators: true });
   res.json({ success: true, data: rule });
 });
 
@@ -73,4 +102,4 @@ const resolveEscalation = asyncHandler(async (req, res) => {
   res.json({ success: true, data: log });
 });
 
-module.exports = { getRules, createRule, updateRule, deleteRule, getEscalationLogs, resolveEscalation };
+export { getRules, createRule, updateRule, deleteRule, getEscalationLogs, resolveEscalation };

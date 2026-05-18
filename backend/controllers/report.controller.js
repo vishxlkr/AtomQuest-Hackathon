@@ -1,9 +1,9 @@
-const Goal = require("../models/Goal");
-const GoalSheet = require("../models/GoalSheet");
-const User = require("../models/User");
-const CheckIn = require("../models/CheckIn");
-const Cycle = require("../models/Cycle");
-const asyncHandler = require("../utils/asyncHandler");
+import Goal from "../models/Goal.js";
+import GoalSheet from "../models/GoalSheet.js";
+import User from "../models/User.js";
+import CheckIn from "../models/CheckIn.js";
+import Cycle from "../models/Cycle.js";
+import asyncHandler from "../utils/asyncHandler.js";
 const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
 
 function round(value, digits = 2) {
@@ -14,6 +14,215 @@ function round(value, digits = 2) {
 function latestQuarterly(goal) {
   const rows = (goal.quarterly || []).filter((item) => item.progressStatus || typeof item.progressScore === "number");
   return rows.sort((a, b) => QUARTERS.indexOf(b.quarter) - QUARTERS.indexOf(a.quarter))[0];
+}
+
+function average(values) {
+  const numeric = values.filter((value) => typeof value === "number");
+  return numeric.length ? round(numeric.reduce((sum, value) => sum + value, 0) / numeric.length) : null;
+}
+
+function buildQuarterTrend(goals) {
+  return QUARTERS.map((quarter) => {
+    const entries = goals.map((goal) => goal.quarterly?.find((item) => item.quarter === quarter)).filter((item) => item && typeof item.progressScore === "number");
+    const total = entries.length;
+    return {
+      quarter,
+      avgScore: total ? round(entries.reduce((sum, item) => sum + item.progressScore, 0) / total) : 0,
+      completionRate: total ? round((entries.filter((item) => item.progressStatus === "completed").length / total) * 100) : 0,
+      onTrackRate: total ? round((entries.filter((item) => item.progressStatus === "on_track").length / total) * 100) : 0,
+      measuredGoals: total
+    };
+  });
+}
+
+function buildGroupedQuarterRows(groups, goals, employeesById) {
+  return groups.map((group) => {
+    const memberIds = new Set(group.employeeIds.map(String));
+    const groupGoals = goals.filter((goal) => memberIds.has(String(goal.employeeId)));
+    const row = {
+      id: group.id,
+      name: group.name,
+      department: group.department,
+      teamSize: group.employeeIds.length
+    };
+
+    QUARTERS.forEach((quarter) => {
+      const scores = groupGoals
+        .map((goal) => goal.quarterly?.find((item) => item.quarter === quarter)?.progressScore)
+        .filter((score) => typeof score === "number");
+      row[quarter] = average(scores);
+    });
+
+    row.employees = group.employeeIds
+      .map((id) => employeesById[String(id)])
+      .filter(Boolean)
+      .map((employee) => ({ employeeId: employee.employeeId, userId: employee._id, name: employee.name }));
+    return row;
+  });
+}
+
+async function buildQoQTrendData(req) {
+  const { activeCycle, sheetIds, employeeIds } = await activeCycleFilter(req);
+  const [goals, employees] = await Promise.all([
+    Goal.find({ goalSheetId: { $in: sheetIds } }),
+    User.find({ _id: { $in: employeeIds } }).select("employeeId name department managerId")
+  ]);
+
+  const orgTrend = buildQuarterTrend(goals);
+  const managerMap = {};
+  if (employees.length) {
+    const managers = await User.find({ _id: { $in: employees.map((employee) => employee.managerId).filter(Boolean) } }).select("name department");
+    managers.forEach((manager) => { managerMap[String(manager._id)] = manager.name; });
+  }
+  const employeesById = Object.fromEntries(employees.map((employee) => [String(employee._id), employee]));
+
+  const employeeTrends = employees.map((employee) => {
+    const employeeGoals = goals.filter((goal) => String(goal.employeeId) === String(employee._id));
+    const row = {
+      employeeId: employee.employeeId,
+      userId: employee._id,
+      name: employee.name,
+      department: employee.department || "Unassigned",
+      manager: employee.managerId ? managerMap[String(employee.managerId)] || "" : ""
+    };
+    QUARTERS.forEach((quarter) => {
+      const scores = employeeGoals
+        .map((goal) => goal.quarterly?.find((item) => item.quarter === quarter)?.progressScore)
+        .filter((score) => typeof score === "number");
+      row[quarter] = scores.length ? round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : null;
+    });
+    return row;
+  });
+
+  const teamGroups = Object.values(employees.reduce((groups, employee) => {
+    const key = employee.managerId ? String(employee.managerId) : "unassigned";
+    groups[key] ||= {
+      id: key,
+      name: employee.managerId ? managerMap[key] || "Unknown Manager" : "Unassigned Manager",
+      employeeIds: []
+    };
+    groups[key].employeeIds.push(employee._id);
+    return groups;
+  }, {}));
+
+  const departmentGroups = Object.values(employees.reduce((groups, employee) => {
+    const key = employee.department || "Unassigned";
+    groups[key] ||= { id: key, name: key, department: key, employeeIds: [] };
+    groups[key].employeeIds.push(employee._id);
+    return groups;
+  }, {}));
+
+  return {
+    activeCycle,
+    orgTrend,
+    employeeTrends,
+    teamTrends: buildGroupedQuarterRows(teamGroups, goals, employeesById),
+    departmentTrends: buildGroupedQuarterRows(departmentGroups, goals, employeesById)
+  };
+}
+
+async function buildGoalDistributionData(req) {
+  const { sheetIds } = await activeCycleFilter(req);
+  const goals = await Goal.find({ goalSheetId: { $in: sheetIds } });
+
+  const thrust = {};
+  const uom = {};
+  const status = {};
+  const weight = {};
+  goals.forEach((goal) => {
+    const thrustArea = goal.thrustArea || "Unassigned";
+    const scoreRows = (goal.quarterly || []).filter((item) => typeof item.progressScore === "number");
+    const avgScore = scoreRows.length ? scoreRows.reduce((sum, item) => sum + item.progressScore, 0) / scoreRows.length : 0;
+    thrust[thrustArea] ||= { name: thrustArea, count: 0, scoreTotal: 0 };
+    thrust[thrustArea].count += 1;
+    thrust[thrustArea].scoreTotal += avgScore;
+
+    const uomType = goal.uomType || "unknown";
+    uom[uomType] ||= { name: uomType, count: 0 };
+    uom[uomType].count += 1;
+
+    const latest = latestQuarterly(goal);
+    const progressStatus = latest?.progressStatus || "not_started";
+    status[progressStatus] ||= { name: progressStatus, count: 0 };
+    status[progressStatus].count += 1;
+
+    weight[thrustArea] ||= { name: thrustArea, total: 0, count: 0 };
+    weight[thrustArea].total += Number(goal.weightage || 0);
+    weight[thrustArea].count += 1;
+  });
+
+  return {
+    byThrustArea: Object.values(thrust).map((item) => ({ name: item.name, count: item.count, avgScore: item.count ? round(item.scoreTotal / item.count) : 0 })),
+    byUomType: Object.values(uom),
+    byStatus: Object.values(status),
+    weightageDistribution: Object.values(weight).map((item) => ({ name: item.name, avgWeightage: item.count ? round(item.total / item.count) : 0 }))
+  };
+}
+
+async function buildDepartmentHeatmapData() {
+  const activeCycle = await Cycle.findOne({ isActive: true });
+  const employees = await User.find({ role: "employee", isActive: true }).select("department");
+  const today = new Date();
+  const rowsByDepartment = {};
+  employees.forEach((employee) => {
+    const department = employee.department || "Unassigned";
+    rowsByDepartment[department] ||= { department, employeeIds: [] };
+    rowsByDepartment[department].employeeIds.push(employee._id);
+  });
+
+  const rows = [];
+  for (const departmentRow of Object.values(rowsByDepartment)) {
+    const row = { department: departmentRow.department };
+    for (const quarter of QUARTERS) {
+      const quarterWindow = activeCycle?.quarters?.find((item) => item.quarter === quarter);
+      if (quarterWindow && today < quarterWindow.windowOpen) {
+        row[quarter] = null;
+        continue;
+      }
+      const done = await CheckIn.countDocuments({ cycleId: activeCycle?._id, quarter, employeeId: { $in: departmentRow.employeeIds }, isCompleted: true });
+      row[quarter] = departmentRow.employeeIds.length ? round((done / departmentRow.employeeIds.length) * 100, 0) : 0;
+      row[`${quarter}Done`] = done;
+      row[`${quarter}Total`] = departmentRow.employeeIds.length;
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+async function buildManagerEffectivenessData() {
+  const activeCycle = await Cycle.findOne({ isActive: true });
+  const managers = await User.find({ role: "manager", isActive: true });
+  const rows = [];
+  for (const manager of managers) {
+    const team = await User.find({ managerId: manager._id, isActive: true });
+    const teamIds = team.map((u) => u._id);
+    const sheets = await GoalSheet.find({ cycleId: activeCycle?._id, employeeId: { $in: teamIds } });
+    const completedCheckIns = await CheckIn.find({ employeeId: { $in: teamIds }, cycleId: activeCycle?._id, isCompleted: true });
+    const checkIns = {};
+    const perQuarter = {};
+    QUARTERS.forEach((quarter) => {
+      const done = completedCheckIns.filter((checkIn) => checkIn.quarter === quarter).length;
+      perQuarter[quarter] = { done, total: team.length, rate: team.length ? round((done / team.length) * 100) : 0 };
+      checkIns[quarter] = perQuarter[quarter].rate;
+    });
+    const approvalDurations = sheets.filter((s) => s.submittedAt && s.approvedAt).map((s) => (s.approvedAt - s.submittedAt) / 86400000);
+    const approved = sheets.filter((sheet) => sheet.approvalStatus === "approved").length;
+    const expectedCheckIns = team.length * QUARTERS.length;
+    rows.push({
+      managerId: manager._id,
+      managerName: manager.name,
+      department: manager.department || "Unassigned",
+      teamSize: team.length,
+      checkIns,
+      perQuarter,
+      checkInsDone: completedCheckIns.length,
+      expectedCheckIns,
+      checkInCompletionRate: expectedCheckIns ? round((completedCheckIns.length / expectedCheckIns) * 100) : 0,
+      approvalAvgDays: approvalDurations.length ? round(approvalDurations.reduce((a, b) => a + b, 0) / approvalDurations.length) : 0,
+      submissionRate: team.length ? round((approved / team.length) * 100) : 0
+    });
+  }
+  return rows;
 }
 
 async function activeCycleFilter(req) {
@@ -86,140 +295,19 @@ const exportAchievementCSV = asyncHandler(async (req, res) => {
 });
 
 const getQoQTrend = asyncHandler(async (req, res) => {
-  const { activeCycle, sheetIds, employeeIds } = await activeCycleFilter(req);
-  const [goals, employees] = await Promise.all([
-    Goal.find({ goalSheetId: { $in: sheetIds } }),
-    User.find({ _id: { $in: employeeIds } }).select("employeeId name department managerId")
-  ]);
-
-  const orgTrend = QUARTERS.map((quarter) => {
-    const entries = goals.map((goal) => goal.quarterly?.find((item) => item.quarter === quarter)).filter((item) => item && typeof item.progressScore === "number");
-    const total = entries.length;
-    return {
-      quarter,
-      avgScore: total ? round(entries.reduce((sum, item) => sum + item.progressScore, 0) / total) : 0,
-      completionRate: total ? round((entries.filter((item) => item.progressStatus === "completed").length / total) * 100) : 0,
-      onTrackRate: total ? round((entries.filter((item) => item.progressStatus === "on_track").length / total) * 100) : 0
-    };
-  });
-
-  const managerMap = {};
-  if (employees.length) {
-    const managers = await User.find({ _id: { $in: employees.map((employee) => employee.managerId).filter(Boolean) } }).select("name");
-    managers.forEach((manager) => { managerMap[String(manager._id)] = manager.name; });
-  }
-
-  const employeeTrends = employees.map((employee) => {
-    const employeeGoals = goals.filter((goal) => String(goal.employeeId) === String(employee._id));
-    const row = {
-      employeeId: employee.employeeId,
-      userId: employee._id,
-      name: employee.name,
-      department: employee.department || "Unassigned",
-      manager: employee.managerId ? managerMap[String(employee.managerId)] || "" : ""
-    };
-    QUARTERS.forEach((quarter) => {
-      const scores = employeeGoals
-        .map((goal) => goal.quarterly?.find((item) => item.quarter === quarter)?.progressScore)
-        .filter((score) => typeof score === "number");
-      row[quarter] = scores.length ? round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : null;
-    });
-    return row;
-  });
-
-  res.json({ success: true, data: { activeCycle, orgTrend, employeeTrends } });
+  res.json({ success: true, data: await buildQoQTrendData(req) });
 });
 
 const getGoalDistribution = asyncHandler(async (req, res) => {
-  const { sheetIds } = await activeCycleFilter(req);
-  const goals = await Goal.find({ goalSheetId: { $in: sheetIds } });
-
-  const thrust = {};
-  const uom = {};
-  const status = {};
-  const weight = {};
-  goals.forEach((goal) => {
-    const thrustArea = goal.thrustArea || "Unassigned";
-    const scoreRows = (goal.quarterly || []).filter((item) => typeof item.progressScore === "number");
-    const avgScore = scoreRows.length ? scoreRows.reduce((sum, item) => sum + item.progressScore, 0) / scoreRows.length : 0;
-    thrust[thrustArea] ||= { name: thrustArea, count: 0, scoreTotal: 0 };
-    thrust[thrustArea].count += 1;
-    thrust[thrustArea].scoreTotal += avgScore;
-
-    const uomType = goal.uomType || "unknown";
-    uom[uomType] ||= { name: uomType, count: 0 };
-    uom[uomType].count += 1;
-
-    const latest = latestQuarterly(goal);
-    const progressStatus = latest?.progressStatus || "not_started";
-    status[progressStatus] ||= { name: progressStatus, count: 0 };
-    status[progressStatus].count += 1;
-
-    weight[thrustArea] ||= { name: thrustArea, total: 0, count: 0 };
-    weight[thrustArea].total += Number(goal.weightage || 0);
-    weight[thrustArea].count += 1;
-  });
-
-  const byThrustArea = Object.values(thrust).map((item) => ({ name: item.name, count: item.count, avgScore: item.count ? round(item.scoreTotal / item.count) : 0 }));
-  const byUomType = Object.values(uom);
-  const byStatus = Object.values(status);
-  const weightageDistribution = Object.values(weight).map((item) => ({ name: item.name, avgWeightage: item.count ? round(item.total / item.count) : 0 }));
-  res.json({ success: true, data: { byThrustArea, byUomType, byStatus, weightageDistribution } });
+  res.json({ success: true, data: await buildGoalDistributionData(req) });
 });
 
 const getDepartmentHeatmap = asyncHandler(async (req, res) => {
-  const activeCycle = await Cycle.findOne({ isActive: true });
-  const employees = await User.find({ role: "employee", isActive: true }).select("department");
-  const today = new Date();
-  const rowsByDepartment = {};
-  employees.forEach((employee) => {
-    const department = employee.department || "Unassigned";
-    rowsByDepartment[department] ||= { department, employeeIds: [] };
-    rowsByDepartment[department].employeeIds.push(employee._id);
-  });
-
-  const rows = [];
-  for (const departmentRow of Object.values(rowsByDepartment)) {
-    const row = { department: departmentRow.department };
-    for (const quarter of QUARTERS) {
-      const quarterWindow = activeCycle?.quarters?.find((item) => item.quarter === quarter);
-      if (quarterWindow && today < quarterWindow.windowOpen) {
-        row[quarter] = null;
-        continue;
-      }
-      const done = await CheckIn.countDocuments({ cycleId: activeCycle?._id, quarter, employeeId: { $in: departmentRow.employeeIds }, isCompleted: true });
-      row[quarter] = departmentRow.employeeIds.length ? round((done / departmentRow.employeeIds.length) * 100, 0) : 0;
-    }
-    rows.push(row);
-  }
-  res.json({ success: true, data: rows });
+  res.json({ success: true, data: await buildDepartmentHeatmapData() });
 });
 
 const getManagerEffectiveness = asyncHandler(async (req, res) => {
-  const activeCycle = await Cycle.findOne({ isActive: true });
-  const managers = await User.find({ role: "manager", isActive: true });
-  const rows = [];
-  for (const manager of managers) {
-    const team = await User.find({ managerId: manager._id, isActive: true });
-    const sheets = await GoalSheet.find({ cycleId: activeCycle?._id, employeeId: { $in: team.map((u) => u._id) } });
-    const completedCheckIns = await CheckIn.find({ managerId: manager._id, cycleId: activeCycle?._id, isCompleted: true });
-    const checkIns = {};
-    QUARTERS.forEach((quarter) => { checkIns[quarter] = completedCheckIns.some((checkIn) => checkIn.quarter === quarter); });
-    const approvalDurations = sheets.filter((s) => s.submittedAt && s.approvedAt).map((s) => (s.approvedAt - s.submittedAt) / 86400000);
-    const approved = sheets.filter((sheet) => sheet.approvalStatus === "approved").length;
-    rows.push({
-      managerId: manager._id,
-      managerName: manager.name,
-      department: manager.department || "Unassigned",
-      teamSize: team.length,
-      checkIns,
-      checkInsDone: completedCheckIns.length,
-      checkInCompletionRate: team.length ? round((completedCheckIns.length / (team.length * 4)) * 100) : 0,
-      approvalAvgDays: approvalDurations.length ? round(approvalDurations.reduce((a, b) => a + b, 0) / approvalDurations.length) : 0,
-      submissionRate: team.length ? round((approved / team.length) * 100) : 0
-    });
-  }
-  res.json({ success: true, data: rows });
+  res.json({ success: true, data: await buildManagerEffectivenessData() });
 });
 
 const getCompletionDashboard = asyncHandler(async (req, res) => {
@@ -255,25 +343,23 @@ const getCompletionDashboard = asyncHandler(async (req, res) => {
 });
 
 const getAnalyticsOverview = asyncHandler(async (req, res) => {
-  const { activeCycle, sheetIds, employeeIds } = await activeCycleFilter(req);
-  const [goals, employees] = await Promise.all([
-    Goal.find({ goalSheetId: { $in: sheetIds } }),
-    User.find({ _id: { $in: employeeIds } }).select("department")
+  const [qoqTrend, goalDistribution, departmentHeatmap, managerEffectiveness] = await Promise.all([
+    buildQoQTrendData(req),
+    buildGoalDistributionData(req),
+    buildDepartmentHeatmapData(),
+    buildManagerEffectivenessData()
   ]);
-  const quarterlyTrend = QUARTERS.map((quarter) => {
-    const entries = goals.map((goal) => goal.quarterly?.find((item) => item.quarter === quarter)).filter((item) => item && typeof item.progressScore === "number");
-    return { quarter, avgScore: entries.length ? round(entries.reduce((sum, item) => sum + item.progressScore, 0) / entries.length) : 0, completionRate: entries.length ? round((entries.filter((item) => item.progressStatus === "completed").length / entries.length) * 100) : 0 };
-  });
   res.json({
     success: true,
     data: {
-      activeCycle,
-      goalDistribution: {},
-      quarterlyTrend,
-      managerEffectiveness: [],
-      departmentHeatmap: []
+      activeCycle: qoqTrend.activeCycle,
+      qoqTrend,
+      goalDistribution,
+      quarterlyTrend: qoqTrend.orgTrend,
+      managerEffectiveness,
+      departmentHeatmap
     }
   });
 });
 
-module.exports = { getAchievementReport, exportAchievementCSV, getQoQTrend, getGoalDistribution, getDepartmentHeatmap, getManagerEffectiveness, getCompletionDashboard, getAnalyticsOverview };
+export { getAchievementReport, exportAchievementCSV, getQoQTrend, getGoalDistribution, getDepartmentHeatmap, getManagerEffectiveness, getCompletionDashboard, getAnalyticsOverview };

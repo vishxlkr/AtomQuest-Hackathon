@@ -1,15 +1,15 @@
-const Cycle = require("../models/Cycle");
-const User = require("../models/User");
-const GoalSheet = require("../models/GoalSheet");
-const AuditLog = require("../models/AuditLog");
-const CheckIn = require("../models/CheckIn");
-const EscalationRule = require("../models/EscalationRule");
-const EscalationLog = require("../models/EscalationLog");
-const asyncHandler = require("../utils/asyncHandler");
-const ApiError = require("../utils/apiError");
-const { logAudit } = require("../utils/auditLogger");
-const { createNotification } = require("../utils/notificationService");
-const { generateUserId } = require("../utils/userIdGenerator");
+import Cycle from "../models/Cycle.js";
+import User from "../models/User.js";
+import GoalSheet from "../models/GoalSheet.js";
+import AuditLog from "../models/AuditLog.js";
+import CheckIn from "../models/CheckIn.js";
+import EscalationRule from "../models/EscalationRule.js";
+import EscalationLog from "../models/EscalationLog.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import ApiError from "../utils/apiError.js";
+import { logAudit } from "../utils/auditLogger.js";
+import { createNotification } from "../utils/notificationService.js";
+import { generateUserId } from "../utils/userIdGenerator.js";
 
 const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -50,7 +50,7 @@ const createUser = asyncHandler(async (req, res) => {
   const name = String(req.body.name || "").trim();
   const role = req.body.role || "employee";
 
-  if (!["employee", "manager", "admin"].includes(role)) {
+  if (!["employee", "manager", "admin", "hr"].includes(role)) {
     throw new ApiError(400, "INVALID_ROLE", "Invalid user role");
   }
   if (!name) throw new ApiError(400, "NAME_REQUIRED", "Name is required");
@@ -76,7 +76,7 @@ const createUser = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   const payload = { ...req.body };
   if (payload.email) payload.email = String(payload.email).trim().toLowerCase();
-  if (payload.role && !["employee", "manager", "admin"].includes(payload.role)) {
+  if (payload.role && !["employee", "manager", "admin", "hr"].includes(payload.role)) {
     throw new ApiError(400, "INVALID_ROLE", "Invalid user role");
   }
   if (Object.prototype.hasOwnProperty.call(payload, "managerId")) {
@@ -178,4 +178,4 @@ const listEscalationLogs = asyncHandler(async (req, res) => {
   res.json({ success: true, data: logs });
 });
 
-module.exports = { createCycle, getActiveCycle, getCycles, activateCycle, getAllUsers, createUser, updateUser, deactivateUser, deleteUser, unlockGoalSheet, getAuditLogs, getCompletionDashboard, getOrgHierarchy, listEscalationRules, createEscalationRule, updateEscalationRule, deleteEscalationRule, listEscalationLogs };
+export { createCycle, getActiveCycle, getCycles, activateCycle, getAllUsers, createUser, updateUser, deactivateUser, deleteUser, unlockGoalSheet, getAuditLogs, getCompletionDashboard, getOrgHierarchy, listEscalationRules, createEscalationRule, updateEscalationRule, deleteEscalationRule, listEscalationLogs };

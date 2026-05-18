@@ -1,6 +1,6 @@
-const express = require("express");
-const ctrl = require("../controllers/admin.controller");
-const { verifyToken, requireRole } = require("../middleware/auth");
+import express from "express";
+import * as ctrl from "../controllers/admin.controller.js";
+import { verifyToken, requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
 router.get("/cycles/active", ctrl.getActiveCycle);
@@ -23,4 +23,4 @@ router.patch("/escalation-rules/:id", ctrl.updateEscalationRule);
 router.delete("/escalation-rules/:id", ctrl.deleteEscalationRule);
 router.get("/escalation-logs", ctrl.listEscalationLogs);
 
-module.exports = router;
+export default router;

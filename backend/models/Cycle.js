@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { QUARTERS } = require("../config/constants");
+import mongoose from "mongoose";
+import { QUARTERS } from "../config/constants.js";
 
 const quarterSchema = new mongoose.Schema(
   {
@@ -23,4 +23,4 @@ const cycleSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Cycle", cycleSchema);
+export default mongoose.model("Cycle", cycleSchema);

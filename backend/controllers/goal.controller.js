@@ -1,15 +1,15 @@
-const Goal = require("../models/Goal");
-const GoalSheet = require("../models/GoalSheet");
-const Cycle = require("../models/Cycle");
-const User = require("../models/User");
-const { v4: uuidv4 } = require("uuid");
-const ApiError = require("../utils/apiError");
-const asyncHandler = require("../utils/asyncHandler");
-const { logAudit } = require("../utils/auditLogger");
-const { createNotification } = require("../utils/notificationService");
-const { calculateProgressScore } = require("../utils/progressScore");
-const { sendGoalSubmittedEmail, sendGoalApprovedEmail, sendGoalReturnedEmail } = require("../utils/emailService");
-const { sendGoalSubmittedTeams, sendGoalApprovedTeams } = require("../utils/teamsNotifier");
+import Goal from "../models/Goal.js";
+import GoalSheet from "../models/GoalSheet.js";
+import Cycle from "../models/Cycle.js";
+import User from "../models/User.js";
+import { v4 as uuidv4 } from "uuid";
+import ApiError from "../utils/apiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import { logAudit } from "../utils/auditLogger.js";
+import { createNotification } from "../utils/notificationService.js";
+import { calculateProgressScore } from "../utils/progressScore.js";
+import { sendGoalSubmittedEmail, sendGoalApprovedEmail, sendGoalReturnedEmail } from "../utils/emailService.js";
+import { sendGoalSubmittedTeams, sendGoalApprovedTeams, sendGoalReturnedTeams } from "../utils/teamsNotifier.js";
 
 async function activeCycle() {
   const cycle = await Cycle.findOne({ isActive: true });
@@ -168,8 +168,9 @@ const returnGoalSheet = asyncHandler(async (req, res) => {
       remarks: sheet.managerRemarks,
       cycleYear: cycle?.name || "Current Cycle"
     });
+    await sendGoalReturnedTeams(employee.name, manager?.name || req.user.name || "Your manager", sheet.managerRemarks, cycle?.name || "Current Cycle");
   } catch (err) {
-    console.error("Goal return email failed:", err.message);
+    console.error("Goal return notification failed:", err.message);
   }
   await logAudit({ entityType: "goalsheet", entityId: sheet._id, action: "GOALSHEET_RETURNED", changedBy: req.user._id, reason: sheet.managerRemarks });
   res.json({ success: true, data: sheet });
@@ -336,4 +337,4 @@ const unlockSheet = asyncHandler(async (req, res) => {
   res.json({ success: true, data: sheet });
 });
 
-module.exports = { createGoalSheet, getOrCreateSheet, getMyGoalSheet, submitGoalSheet, getTeamGoalSheets, approveGoalSheet, returnGoalSheet, addGoal, updateGoal, deleteGoal, managerUpdateGoal, updateAchievement, pushSharedGoal, syncSharedGoalAchievement, unlockSheet, validateGoalSheetRules };
+export { createGoalSheet, getOrCreateSheet, getMyGoalSheet, submitGoalSheet, getTeamGoalSheets, approveGoalSheet, returnGoalSheet, addGoal, updateGoal, deleteGoal, managerUpdateGoal, updateAchievement, pushSharedGoal, syncSharedGoalAchievement, unlockSheet, validateGoalSheetRules };

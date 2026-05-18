@@ -36,4 +36,4 @@ function calculateProgressScore(uomType, target, achievement, deadline) {
   return round(Math.min(score, 150));
 }
 
-module.exports = { calculateProgressScore, calculateScore: calculateProgressScore };
+export { calculateProgressScore, calculateProgressScore as calculateScore };

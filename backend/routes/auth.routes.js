@@ -1,9 +1,9 @@
-const express = require("express");
-const { body } = require("express-validator");
-const rateLimit = require("express-rate-limit");
-const { register, login, refreshToken, logout, getMe, getAzureLoginUrl, handleAzureCallback } = require("../controllers/auth.controller");
-const { verifyToken } = require("../middleware/auth");
-const { validateRequest } = require("../middleware/validate");
+import express from "express";
+import { body } from "express-validator";
+import rateLimit from "express-rate-limit";
+import { register, login, refreshToken, logout, getMe, getAzureLoginUrl, handleAzureCallback } from "../controllers/auth.controller.js";
+import { verifyToken } from "../middleware/auth.js";
+import { validateRequest } from "../middleware/validate.js";
 
 const router = express.Router();
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 5, standardHeaders: true });
@@ -28,4 +28,4 @@ router.get("/me", verifyToken, getMe);
 router.get("/azure/login", getAzureLoginUrl);
 router.get("/azure/callback", handleAzureCallback);
 
-module.exports = router;
+export default router;

@@ -1,8 +1,9 @@
-const Counter = require("../models/Counter");
-const User = require("../models/User");
+import Counter from "../models/Counter.js";
+import User from "../models/User.js";
 
 const PREFIX_BY_ROLE = {
   admin: "ADM",
+  hr: "HR",
   manager: "MGR",
   employee: "EMP"
 };
@@ -28,4 +29,4 @@ async function generateUserId(role = "employee") {
   return `${prefix}${String(counter.seq).padStart(3, "0")}`;
 }
 
-module.exports = { generateUserId };
+export { generateUserId };

@@ -1,14 +1,23 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const rateLimit = require("express-rate-limit");
-const cookieParser = require("cookie-parser");
-const connectDB = require("./config/db");
-const { ensureEnvAdmin } = require("./config/bootstrapAdmin");
-const errorHandler = require("./middleware/errorHandler");
-const { startCronJobs } = require("./utils/cronJobs");
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
+import connectDB from "./config/db.js";
+import { ensureEnvAdmin } from "./config/bootstrapAdmin.js";
+import errorHandler from "./middleware/errorHandler.js";
+import { startCronJobs } from "./utils/cronJobs.js";
+import authRoutes from "./routes/auth.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import goalRoutes from "./routes/goal.routes.js";
+import checkinRoutes from "./routes/checkin.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import reportRoutes from "./routes/report.routes.js";
+import cycleRoutes from "./routes/cycle.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import escalationRoutes from "./routes/escalation.routes.js";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -22,15 +31,15 @@ app.use(morgan("dev"));
 app.use("/api/v1", rateLimit({ windowMs: 15 * 60 * 1000, limit: 100, standardHeaders: true }));
 
 app.get("/health", (req, res) => res.json({ success: true, service: "atomquest-api" }));
-app.use("/api/v1/auth", require("./routes/auth.routes"));
-app.use("/api/v1/users", require("./routes/user.routes"));
-app.use("/api/v1/goals", require("./routes/goal.routes"));
-app.use("/api/v1/checkin", require("./routes/checkin.routes"));
-app.use("/api/v1/admin", require("./routes/admin.routes"));
-app.use("/api/v1/reports", require("./routes/report.routes"));
-app.use("/api/v1/cycles", require("./routes/cycle.routes"));
-app.use("/api/v1/notifications", require("./routes/notification.routes"));
-app.use("/api/v1", require("./routes/escalation.routes"));
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/goals", goalRoutes);
+app.use("/api/v1/checkin", checkinRoutes);
+app.use("/api/v1/admin", adminRoutes);
+app.use("/api/v1/reports", reportRoutes);
+app.use("/api/v1/cycles", cycleRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1", escalationRoutes);
 app.use(errorHandler);
 
 const port = process.env.PORT || 5000;
@@ -49,4 +58,4 @@ connectDB().then(() => {
   process.exit(1);
 });
 
-module.exports = app;
+export default app;

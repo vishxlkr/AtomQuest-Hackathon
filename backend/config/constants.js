@@ -1,4 +1,4 @@
-const ROLES = ["employee", "manager", "admin"];
+const ROLES = ["employee", "manager", "admin", "hr"];
 const UOM_TYPES = ["min", "max", "timeline", "zero"];
 const GOAL_STATUSES = ["draft", "active", "locked"];
 const APPROVAL_STATUSES = ["draft", "submitted", "approved", "returned"];
@@ -11,4 +11,4 @@ const DEFAULT_QUARTER_WINDOWS = [
   { quarter: "Q4", month: "March/April" }
 ];
 
-module.exports = { ROLES, UOM_TYPES, GOAL_STATUSES, APPROVAL_STATUSES, PROGRESS_STATUSES, QUARTERS, DEFAULT_QUARTER_WINDOWS };
+export { ROLES, UOM_TYPES, GOAL_STATUSES, APPROVAL_STATUSES, PROGRESS_STATUSES, QUARTERS, DEFAULT_QUARTER_WINDOWS };

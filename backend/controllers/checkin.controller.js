@@ -1,13 +1,13 @@
-const Goal = require("../models/Goal");
-const GoalSheet = require("../models/GoalSheet");
-const CheckIn = require("../models/CheckIn");
-const User = require("../models/User");
-const Cycle = require("../models/Cycle");
-const ApiError = require("../utils/apiError");
-const asyncHandler = require("../utils/asyncHandler");
-const { calculateProgressScore } = require("../utils/progressScore");
-const { logAudit } = require("../utils/auditLogger");
-const { createNotification } = require("../utils/notificationService");
+import Goal from "../models/Goal.js";
+import GoalSheet from "../models/GoalSheet.js";
+import CheckIn from "../models/CheckIn.js";
+import User from "../models/User.js";
+import Cycle from "../models/Cycle.js";
+import ApiError from "../utils/apiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import { calculateProgressScore } from "../utils/progressScore.js";
+import { logAudit } from "../utils/auditLogger.js";
+import { createNotification } from "../utils/notificationService.js";
 
 async function resolveCheckInQuarter(requestedQuarter) {
   if (requestedQuarter) return requestedQuarter;
@@ -96,4 +96,4 @@ const getTeamCheckInStatus = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { quarter, rows, completionPercentage: sheets.length ? Math.round((done.length / sheets.length) * 100) : 0 } });
 });
 
-module.exports = { updateQuarterlyAchievement, getQuarterlyProgress, conductCheckIn, getCheckInHistory, getTeamCheckInStatus };
+export { updateQuarterlyAchievement, getQuarterlyProgress, conductCheckIn, getCheckInHistory, getTeamCheckInStatus };

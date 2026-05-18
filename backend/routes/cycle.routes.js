@@ -1,6 +1,6 @@
-const express = require("express");
-const { verifyToken, requireRole } = require("../middleware/auth");
-const ctrl = require("../controllers/admin.controller");
+import express from "express";
+import { verifyToken, requireRole } from "../middleware/auth.js";
+import * as ctrl from "../controllers/admin.controller.js";
 
 const router = express.Router();
 
@@ -9,4 +9,4 @@ router.use(verifyToken);
 router.get("/", requireRole("admin"), ctrl.getCycles);
 router.post("/", requireRole("admin"), ctrl.createCycle);
 
-module.exports = router;
+export default router;

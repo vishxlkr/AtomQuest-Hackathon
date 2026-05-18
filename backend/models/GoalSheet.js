@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const { APPROVAL_STATUSES } = require("../config/constants");
+import mongoose from "mongoose";
+import { APPROVAL_STATUSES } from "../config/constants.js";
 
 const goalSheetSchema = new mongoose.Schema(
   {
@@ -21,4 +21,4 @@ const goalSheetSchema = new mongoose.Schema(
 goalSheetSchema.index({ employeeId: 1, cycleId: 1 }, { unique: true });
 goalSheetSchema.virtual("goals", { ref: "Goal", localField: "_id", foreignField: "goalSheetId" });
 
-module.exports = mongoose.model("GoalSheet", goalSheetSchema);
+export default mongoose.model("GoalSheet", goalSheetSchema);

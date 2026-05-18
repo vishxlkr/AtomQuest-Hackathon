@@ -11,6 +11,13 @@ const events = [
   ["GOAL_NOT_APPROVED", "Manager has not approved goals"],
   ["CHECKIN_NOT_DONE", "Check-in not completed in window"]
 ];
+const targets = [
+  ["employee", "Employee"],
+  ["manager", "Manager"],
+  ["skip_level", "Skip Level"],
+  ["hr", "HR"],
+  ["admin", "Admin"]
+];
 const colors = {
   GOAL_NOT_SUBMITTED: "bg-amber-100 text-amber-800",
   GOAL_NOT_APPROVED: "bg-orange-100 text-orange-800",
@@ -22,7 +29,21 @@ function badge(event) {
 }
 
 function defaultForm() {
-  return { triggerEvent: "GOAL_NOT_SUBMITTED", thresholdDays: 3, escalateTo: "manager", description: "", isActive: true };
+  return {
+    triggerEvent: "GOAL_NOT_SUBMITTED",
+    escalationChain: [
+      { target: "employee", afterDays: 3 },
+      { target: "manager", afterDays: 5 },
+      { target: "hr", afterDays: 7 }
+    ],
+    description: "",
+    isActive: true
+  };
+}
+
+function getRuleChain(rule) {
+  if (rule.escalationChain?.length) return rule.escalationChain;
+  return [{ target: rule.escalateTo || "manager", afterDays: rule.thresholdDays || 1 }];
 }
 
 export default function EscalationsPage() {
@@ -69,7 +90,8 @@ export default function EscalationsPage() {
     if (ruleSaving) return;
     setRuleSaving(true);
     try {
-      const payload = { ...form, thresholdDays: Number(form.thresholdDays) };
+      const escalationChain = form.escalationChain.map((stage) => ({ target: stage.target, afterDays: Number(stage.afterDays) }));
+      const payload = { ...form, escalationChain };
       if (editingId) await api.patch(`/escalations/rules/${editingId}`, payload);
       else await api.post("/escalations/rules", payload);
       setShowModal(false);
@@ -116,8 +138,26 @@ export default function EscalationsPage() {
 
   const editRule = (rule) => {
     setEditingId(rule._id);
-    setForm({ triggerEvent: rule.triggerEvent, thresholdDays: rule.thresholdDays, escalateTo: rule.escalateTo, description: rule.description || "", isActive: rule.isActive });
+    setForm({ triggerEvent: rule.triggerEvent, escalationChain: getRuleChain(rule), description: rule.description || "", isActive: rule.isActive });
     setShowModal(true);
+  };
+
+  const updateStage = (index, patch) => {
+    setForm((prev) => ({
+      ...prev,
+      escalationChain: prev.escalationChain.map((stage, i) => i === index ? { ...stage, ...patch } : stage)
+    }));
+  };
+
+  const addStage = () => {
+    setForm((prev) => ({
+      ...prev,
+      escalationChain: [...prev.escalationChain, { target: "hr", afterDays: Number(prev.escalationChain.at(-1)?.afterDays || 1) + 2 }]
+    }));
+  };
+
+  const removeStage = (index) => {
+    setForm((prev) => ({ ...prev, escalationChain: prev.escalationChain.filter((_, i) => i !== index) }));
   };
 
   if (!rulesLoaded || !logsLoaded) return <CenteredLoader label="Loading escalations..." />;
@@ -140,12 +180,11 @@ export default function EscalationsPage() {
           </div>
           <div className="overflow-x-auto rounded-lg border">
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-left text-slate-500"><tr>{["Trigger Event", "Threshold (days)", "Escalate To", "Status", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
+              <thead className="bg-slate-50 text-left text-slate-500"><tr>{["Trigger Event", "Escalation Chain", "Status", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead>
               <tbody className="divide-y">
                 {rules.map((rule) => <tr key={rule._id}>
                   <td className="px-4 py-3">{badge(rule.triggerEvent)}<p className="mt-1 text-xs text-slate-500">{rule.description}</p></td>
-                  <td className="px-4 py-3">{rule.thresholdDays}</td>
-                  <td className="px-4 py-3 capitalize">{rule.escalateTo.replace("_", " ")}</td>
+                  <td className="px-4 py-3 text-slate-600">{getRuleChain(rule).map((stage) => `${stage.target.replace("_", " ")} after ${stage.afterDays}d`).join(" -> ")}</td>
                   <td className="px-4 py-3"><button onClick={() => toggleRule(rule)} disabled={Boolean(togglingId)} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${rule.isActive ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-500"}`}>{togglingId === rule._id ? "Updating" : rule.isActive ? "Active" : "Inactive"}</button></td>
                   <td className="px-4 py-3"><div className="flex gap-2"><Button type="button" variant="secondary" onClick={() => editRule(rule)} disabled={Boolean(deletingId || togglingId)}>Edit</Button><Button type="button" variant="danger" isLoading={deletingId === rule._id} disabled={Boolean(deletingId)} onClick={() => deleteRule(rule._id)}><Trash2 size={16} /></Button></div></td>
                 </tr>)}
@@ -169,7 +208,7 @@ export default function EscalationsPage() {
               <input type="date" value={filters.dateTo} onChange={(e) => setFilters((prev) => ({ ...prev, dateTo: e.target.value }))} className="rounded-md border px-3 py-2" />
             </div>
             <div className="overflow-x-auto rounded-lg border">
-              <table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-slate-500"><tr>{["Date", "Employee", "Event", "Escalated To", "Message", "Resolved", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead><tbody className="divide-y">{logs.map((log) => <tr key={log._id} className={log.isResolved ? "bg-white" : "bg-red-50"}><td className="px-4 py-3">{new Date(log.triggeredAt).toLocaleString()}</td><td className="px-4 py-3">{log.affectedUserId?.name || "-"}</td><td className="px-4 py-3">{badge(log.triggerEvent)}</td><td className="px-4 py-3">{log.escalatedToUserId?.name || "-"}</td><td className="max-w-md px-4 py-3 text-slate-600">{log.message}</td><td className="px-4 py-3">{log.isResolved ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800"><CheckCircle2 size={14} />Resolved</span> : <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800"><AlertTriangle size={14} />Open</span>}</td><td className="px-4 py-3">{!log.isResolved ? <Button type="button" variant="secondary" isLoading={resolvingId === log._id} disabled={Boolean(resolvingId)} onClick={() => resolveLog(log._id)}>{resolvingId === log._id ? "Resolving" : "Mark Resolved"}</Button> : "-"}</td></tr>)}</tbody></table>
+              <table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-slate-500"><tr>{["Date", "Employee", "Event", "Stage", "Escalated To", "Message", "Resolved", "Actions"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead><tbody className="divide-y">{logs.map((log) => <tr key={log._id} className={log.isResolved ? "bg-white" : "bg-red-50"}><td className="px-4 py-3">{new Date(log.triggeredAt).toLocaleString()}</td><td className="px-4 py-3">{log.affectedUserId?.name || "-"}</td><td className="px-4 py-3">{badge(log.triggerEvent)}</td><td className="px-4 py-3 capitalize">{log.stageTarget ? `${log.stageTarget.replace("_", " ")} (${log.stageAfterDays}d)` : "-"}</td><td className="px-4 py-3">{log.escalatedToUserId?.name || "-"}</td><td className="max-w-md px-4 py-3 text-slate-600">{log.message}</td><td className="px-4 py-3">{log.isResolved ? <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800"><CheckCircle2 size={14} />Resolved</span> : <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-800"><AlertTriangle size={14} />Open</span>}</td><td className="px-4 py-3">{!log.isResolved ? <Button type="button" variant="secondary" isLoading={resolvingId === log._id} disabled={Boolean(resolvingId)} onClick={() => resolveLog(log._id)}>{resolvingId === log._id ? "Resolving" : "Mark Resolved"}</Button> : "-"}</td></tr>)}</tbody></table>
             </div>
             <p className="mt-3 text-xs text-slate-500">{logMeta.total || logs.length} total escalation logs</p>
           </Card>
@@ -181,8 +220,16 @@ export default function EscalationsPage() {
           <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">{editingId ? "Edit Rule" : "Add Rule"}</h3><button type="button" disabled={ruleSaving} onClick={() => setShowModal(false)}><X size={18} /></button></div>
           <div className="space-y-4">
             <label className="block text-sm font-medium">Trigger Event<select value={form.triggerEvent} disabled={ruleSaving} onChange={(e) => setForm((prev) => ({ ...prev, triggerEvent: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 disabled:opacity-60">{events.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label className="block text-sm font-medium">Trigger after X days<input type="number" min="1" value={form.thresholdDays} disabled={ruleSaving} onChange={(e) => setForm((prev) => ({ ...prev, thresholdDays: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 disabled:opacity-60" /></label>
-            <label className="block text-sm font-medium">Escalate To<select value={form.escalateTo} disabled={ruleSaving} onChange={(e) => setForm((prev) => ({ ...prev, escalateTo: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 disabled:opacity-60"><option value="manager">Manager</option><option value="skip_level">Skip Level</option><option value="admin">Admin</option></select></label>
+            <div>
+              <div className="mb-2 flex items-center justify-between"><span className="text-sm font-medium">Escalation Chain</span><Button type="button" variant="secondary" onClick={addStage} disabled={ruleSaving}><Plus size={14} />Stage</Button></div>
+              <div className="space-y-2">
+                {form.escalationChain.map((stage, index) => <div key={index} className="grid gap-2 rounded-md border p-3 md:grid-cols-[1fr_120px_auto]">
+                  <select value={stage.target} disabled={ruleSaving} onChange={(e) => updateStage(index, { target: e.target.value })} className="rounded-md border px-3 py-2 disabled:opacity-60">{targets.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
+                  <input type="number" min="1" value={stage.afterDays} disabled={ruleSaving} onChange={(e) => updateStage(index, { afterDays: e.target.value })} className="rounded-md border px-3 py-2 disabled:opacity-60" />
+                  <Button type="button" variant="danger" disabled={ruleSaving || form.escalationChain.length === 1} onClick={() => removeStage(index)}><Trash2 size={14} /></Button>
+                </div>)}
+              </div>
+            </div>
             <label className="block text-sm font-medium">Description<textarea value={form.description} disabled={ruleSaving} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} className="mt-1 w-full rounded-md border px-3 py-2 disabled:opacity-60" rows={3} /></label>
           </div>
           <div className="mt-5 flex justify-end gap-2"><Button type="button" variant="secondary" disabled={ruleSaving} onClick={() => setShowModal(false)}>Cancel</Button><Button type="submit" isLoading={ruleSaving}>{ruleSaving ? "Saving" : editingId ? "Save Changes" : "Create Rule"}</Button></div>

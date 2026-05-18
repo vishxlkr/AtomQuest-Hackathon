@@ -1,10 +1,10 @@
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const User = require("../models/User");
-const ApiError = require("../utils/apiError");
-const asyncHandler = require("../utils/asyncHandler");
-const { getMsalClient } = require("../config/azureAD");
-const { generateUserId } = require("../utils/userIdGenerator");
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import User from "../models/User.js";
+import ApiError from "../utils/apiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import { getMsalClient } from "../config/azureAD.js";
+import { generateUserId } from "../utils/userIdGenerator.js";
 
 function signAccessToken(user) {
   return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "15m" });
@@ -149,4 +149,4 @@ const handleAzureCallback = asyncHandler(async (req, res) => {
   res.redirect(`${portalBase}/auth/callback?token=${encodeURIComponent(accessToken)}`);
 });
 
-module.exports = { register, login, refreshToken, logout, getMe, getAzureLoginUrl, handleAzureCallback };
+export { register, login, refreshToken, logout, getMe, getAzureLoginUrl, handleAzureCallback };

@@ -1,6 +1,6 @@
-const express = require("express");
-const { verifyToken } = require("../middleware/auth");
-const ctrl = require("../controllers/notification.controller");
+import express from "express";
+import { verifyToken } from "../middleware/auth.js";
+import * as ctrl from "../controllers/notification.controller.js";
 
 const router = express.Router();
 router.use(verifyToken);
@@ -8,4 +8,4 @@ router.get("/", ctrl.listNotifications);
 router.patch("/read-all", ctrl.markAllRead);
 router.patch("/:id/read", ctrl.markRead);
 
-module.exports = router;
+export default router;

@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const ApiError = require("../utils/apiError");
-const asyncHandler = require("../utils/asyncHandler");
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import ApiError from "../utils/apiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 const verifyToken = asyncHandler(async (req, res, next) => {
   const header = req.headers.authorization || "";
@@ -27,4 +27,4 @@ const requireRole = (...roles) => (req, res, next) => {
   return next();
 };
 
-module.exports = { verifyToken, requireRole };
+export { verifyToken, requireRole };

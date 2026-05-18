@@ -1,8 +1,8 @@
-const express = require("express");
-const { body } = require("express-validator");
-const ctrl = require("../controllers/goal.controller");
-const { verifyToken, requireRole } = require("../middleware/auth");
-const { validateRequest } = require("../middleware/validate");
+import express from "express";
+import { body } from "express-validator";
+import * as ctrl from "../controllers/goal.controller.js";
+import { verifyToken, requireRole } from "../middleware/auth.js";
+import { validateRequest } from "../middleware/validate.js";
 
 const router = express.Router();
 const goalRules = [body("title").optional().notEmpty().trim().isLength({ max: 200 }), body("uomType").optional().isIn(["min", "max", "timeline", "zero"]), body("weightage").optional().isFloat({ min: 10, max: 100 })];
@@ -36,4 +36,4 @@ router.patch("/:goalId/achievement", requireRole("employee"), ctrl.updateAchieve
 router.patch("/:goalId", requireRole("employee", "admin"), goalRules, validateRequest, ctrl.updateGoal);
 router.delete("/:goalId", requireRole("employee", "admin"), ctrl.deleteGoal);
 
-module.exports = router;
+export default router;

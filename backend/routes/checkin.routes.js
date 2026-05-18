@@ -1,9 +1,9 @@
-const express = require("express");
-const { body } = require("express-validator");
-const ctrl = require("../controllers/checkin.controller");
-const { verifyToken, requireRole } = require("../middleware/auth");
-const { enforceQuarterWindow } = require("../middleware/quarterWindow");
-const { validateRequest } = require("../middleware/validate");
+import express from "express";
+import { body } from "express-validator";
+import * as ctrl from "../controllers/checkin.controller.js";
+import { verifyToken, requireRole } from "../middleware/auth.js";
+import { enforceQuarterWindow } from "../middleware/quarterWindow.js";
+import { validateRequest } from "../middleware/validate.js";
 
 const router = express.Router();
 router.use(verifyToken);
@@ -14,4 +14,4 @@ router.post("/:sheetId/conduct", requireRole("manager", "admin"), ctrl.conductCh
 router.get("/:sheetId/history", ctrl.getCheckInHistory);
 router.get("/team/status", requireRole("manager", "admin"), ctrl.getTeamCheckInStatus);
 
-module.exports = router;
+export default router;

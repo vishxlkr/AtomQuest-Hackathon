@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 async function connectDB() {
   const uri = process.env.MONGO_URI || "mongodb://localhost:27017/atomquest";
@@ -7,4 +7,4 @@ async function connectDB() {
   console.log(`MongoDB connected: ${mongoose.connection.name}`);
 }
 
-module.exports = connectDB;
+export default connectDB;

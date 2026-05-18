@@ -1,15 +1,15 @@
-require("dotenv").config();
-const mongoose = require("mongoose");
-const connectDB = require("../config/db");
-const User = require("../models/User");
-const Cycle = require("../models/Cycle");
-const GoalSheet = require("../models/GoalSheet");
-const Goal = require("../models/Goal");
-const AuditLog = require("../models/AuditLog");
-const CheckIn = require("../models/CheckIn");
-const Notification = require("../models/Notification");
-const EscalationRule = require("../models/EscalationRule");
-const EscalationLog = require("../models/EscalationLog");
+import "dotenv/config";
+import mongoose from "mongoose";
+import connectDB from "../config/db.js";
+import User from "../models/User.js";
+import Cycle from "../models/Cycle.js";
+import GoalSheet from "../models/GoalSheet.js";
+import Goal from "../models/Goal.js";
+import AuditLog from "../models/AuditLog.js";
+import CheckIn from "../models/CheckIn.js";
+import Notification from "../models/Notification.js";
+import EscalationRule from "../models/EscalationRule.js";
+import EscalationLog from "../models/EscalationLog.js";
 
 async function seed() {
   await connectDB();

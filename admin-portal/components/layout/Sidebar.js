@@ -40,7 +40,7 @@ export default function Sidebar() {
       ["/admin/analytics", "Analytics", BarChart2],
       ["/admin/escalations", "Escalations", AlertTriangle],
    ];
-   const links = user?.role === "admin" ? adminLinks : managerLinks;
+   const links = user?.role === "hr" ? [["/admin/escalations", "Escalations", AlertTriangle]] : user?.role === "admin" ? adminLinks : managerLinks;
    const [optimisticHref, setOptimisticHref] = useState(null);
    const activePath = optimisticHref || pathname;
    const isActive = (href) => isHrefActive(href, activePath);

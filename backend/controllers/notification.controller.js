@@ -1,6 +1,6 @@
-const Notification = require("../models/Notification");
-const ApiError = require("../utils/apiError");
-const asyncHandler = require("../utils/asyncHandler");
+import Notification from "../models/Notification.js";
+import ApiError from "../utils/apiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 const listNotifications = asyncHandler(async (req, res) => {
   const [items, unreadCount] = await Promise.all([
@@ -21,4 +21,4 @@ const markAllRead = asyncHandler(async (req, res) => {
   res.json({ success: true });
 });
 
-module.exports = { listNotifications, markRead, markAllRead };
+export { listNotifications, markRead, markAllRead };

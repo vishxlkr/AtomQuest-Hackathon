@@ -1,9 +1,9 @@
-const express = require("express");
-const ctrl = require("../controllers/escalation.controller");
-const { verifyToken, requireRole } = require("../middleware/auth");
+import express from "express";
+import * as ctrl from "../controllers/escalation.controller.js";
+import { verifyToken, requireRole } from "../middleware/auth.js";
 
 const router = express.Router();
-router.use(verifyToken, requireRole("admin"));
+router.use(verifyToken, requireRole("admin", "hr"));
 
 router.get("/escalations/rules", ctrl.getRules);
 router.post("/escalations/rules", ctrl.createRule);
@@ -12,4 +12,4 @@ router.delete("/escalations/rules/:id", ctrl.deleteRule);
 router.get("/escalations/logs", ctrl.getEscalationLogs);
 router.patch("/escalations/logs/:id/resolve", ctrl.resolveEscalation);
 
-module.exports = router;
+export default router;

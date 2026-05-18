@@ -50,7 +50,8 @@ export default function AnalyticsPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [distributionTab, setDistributionTab] = useState("byThrustArea");
-  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [trendLevel, setTrendLevel] = useState("employeeTrends");
+  const [selectedTrendId, setSelectedTrendId] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
 
   useEffect(() => {
@@ -69,10 +70,17 @@ export default function AnalyticsPage() {
       .catch((err) => setError(err.response?.data?.error?.message || "Unable to load analytics"));
   }, []);
 
+  const trendOptions = useMemo(() => data?.qoq?.[trendLevel] || [], [data, trendLevel]);
+
   const trendRows = useMemo(() => {
-    const employee = data?.qoq?.employeeTrends?.find((item) => item.name === selectedEmployee);
-    return (data?.qoq?.orgTrend || []).map((row) => ({ ...row, employeeScore: employee ? employee[row.quarter] : null }));
-  }, [data, selectedEmployee]);
+    const selected = trendOptions.find((item) => String(item.userId || item.id || item.employeeId || item.name) === selectedTrendId);
+    return (data?.qoq?.orgTrend || []).map((row) => ({ ...row, selectedScore: selected ? selected[row.quarter] : null }));
+  }, [data, trendOptions, selectedTrendId]);
+
+  const selectedTrendLabel = useMemo(() => {
+    const selected = trendOptions.find((item) => String(item.userId || item.id || item.employeeId || item.name) === selectedTrendId);
+    return selected?.name || "";
+  }, [trendOptions, selectedTrendId]);
 
   const pieData = useMemo(() => {
     const rows = data?.distribution?.[distributionTab] || [];
@@ -113,11 +121,20 @@ export default function AnalyticsPage() {
 
       <Card>
         <h3 className="mb-3 font-semibold text-slate-900">Quarter-over-Quarter Performance Trend</h3>
-        {trendRows.length ? <ResponsiveContainer width="100%" height={300}><ComposedChart data={trendRows}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="quarter" /><YAxis yAxisId="score" domain={[0, 150]} /><YAxis yAxisId="rate" orientation="right" domain={[0, 100]} /><Tooltip /><Legend verticalAlign="bottom" /><Bar yAxisId="rate" dataKey="completionRate" name="Completion Rate %" fill="#10b981" fillOpacity={0.3} /><Line yAxisId="score" type="monotone" dataKey="avgScore" name="Avg Progress Score" stroke="#4f46e5" strokeWidth={2} dot />{selectedEmployee ? <Line yAxisId="score" type="monotone" dataKey="employeeScore" name={selectedEmployee} stroke="#f43f5e" strokeWidth={3} dot /> : null}</ComposedChart></ResponsiveContainer> : <EmptyState />}
-        <select value={selectedEmployee} onChange={(e) => setSelectedEmployee(e.target.value)} className="mt-4 rounded-md border px-3 py-2 text-sm">
-          <option value="">Select employee trend</option>
-          {(data.qoq?.employeeTrends || []).map((employee) => <option key={employee.userId || employee.employeeId || employee.name} value={employee.name}>{employee.name}</option>)}
-        </select>
+        {trendRows.length ? <ResponsiveContainer width="100%" height={300}><ComposedChart data={trendRows}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="quarter" /><YAxis yAxisId="score" domain={[0, 150]} /><YAxis yAxisId="rate" orientation="right" domain={[0, 100]} /><Tooltip /><Legend verticalAlign="bottom" /><Bar yAxisId="rate" dataKey="completionRate" name="Goal Completion Rate %" fill="#10b981" fillOpacity={0.3} /><Line yAxisId="score" type="monotone" dataKey="avgScore" name="Org Avg Progress Score" stroke="#4f46e5" strokeWidth={2} dot />{selectedTrendId ? <Line yAxisId="score" type="monotone" dataKey="selectedScore" name={selectedTrendLabel} stroke="#f43f5e" strokeWidth={3} dot /> : null}</ComposedChart></ResponsiveContainer> : <EmptyState />}
+        <div className="mt-4 flex flex-wrap gap-3">
+          <div className="flex rounded-md border p-1 text-xs">
+            {[["employeeTrends", "Individual"], ["teamTrends", "Team"], ["departmentTrends", "Department"]].map(([key, label]) => <button key={key} onClick={() => { setTrendLevel(key); setSelectedTrendId(""); }} className={`rounded px-3 py-1.5 ${trendLevel === key ? "bg-indigo-600 text-white" : "text-slate-600"}`}>{label}</button>)}
+          </div>
+          <select value={selectedTrendId} onChange={(e) => setSelectedTrendId(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
+            <option value="">Compare with {trendLevel === "employeeTrends" ? "individual" : trendLevel === "teamTrends" ? "team" : "department"}</option>
+            {trendOptions.map((item) => {
+              const id = String(item.userId || item.id || item.employeeId || item.name);
+              const detail = trendLevel === "employeeTrends" ? item.department : `${item.teamSize || 0} people`;
+              return <option key={id} value={id}>{item.name}{detail ? ` - ${detail}` : ""}</option>;
+            })}
+          </select>
+        </div>
       </Card>
 
       <div className="grid gap-5 xl:grid-cols-2">
@@ -145,7 +162,7 @@ export default function AnalyticsPage() {
         <h3 className="mb-4 font-semibold text-slate-900">Manager Effectiveness Dashboard</h3>
         {data.managers?.length ? <ResponsiveContainer width="100%" height={300}><BarChart data={data.managers.map((row) => ({ ...row, label: row.managerName?.length > 12 ? `${row.managerName.slice(0, 12)}...` : row.managerName }))}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="label" /><YAxis yAxisId="left" domain={[0, 100]} /><YAxis yAxisId="right" orientation="right" /><Tooltip formatter={(val, name, props) => [val, `${name} (team ${props.payload.teamSize})`]} /><Legend /><Bar yAxisId="left" dataKey="checkInCompletionRate" name="Check-in Completion %" fill="#4f46e5">{data.managers.map((row, index) => <Cell key={index} fill={row.checkInCompletionRate < 50 ? "#ef4444" : "#4f46e5"} fillOpacity={row.checkInCompletionRate < 50 ? 0.5 : 1} />)}</Bar><Bar yAxisId="left" dataKey="submissionRate" name="Submission Rate %" fill="#10b981">{data.managers.map((row, index) => <Cell key={index} fill={row.checkInCompletionRate < 50 ? "#f87171" : "#10b981"} fillOpacity={row.checkInCompletionRate < 50 ? 0.5 : 1} />)}</Bar><Bar yAxisId="right" dataKey="approvalAvgDays" name="Avg Approval Days" fill="#f59e0b" /></BarChart></ResponsiveContainer> : <EmptyState />}
         <div className="mt-5 overflow-x-auto rounded-lg border">
-          <table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-slate-500"><tr>{["Manager", "Team Size", "Check-ins Done", "Avg Approval", "Submission Rate"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead><tbody>{data.managers.map((row) => <tr key={row.managerId} className={row.approvalAvgDays > 5 ? "bg-red-50" : "bg-white"}><td className="px-4 py-3 font-medium">{row.managerName}</td><td className="px-4 py-3">{row.teamSize}</td><td className="px-4 py-3">{Object.entries(row.checkIns || {}).filter(([, done]) => done).map(([q]) => q).join(", ") || "None"}</td><td className="px-4 py-3">{row.approvalAvgDays} days</td><td className="px-4 py-3">{row.submissionRate}%</td></tr>)}</tbody></table>
+          <table className="min-w-full text-sm"><thead className="bg-slate-50 text-left text-slate-500"><tr>{["Manager", "Team Size", "Q1", "Q2", "Q3", "Q4", "Check-ins Done", "Avg Approval", "Submission Rate"].map((h) => <th key={h} className="px-4 py-3 font-semibold">{h}</th>)}</tr></thead><tbody>{data.managers.map((row) => <tr key={row.managerId} className={row.approvalAvgDays > 5 ? "bg-red-50" : "bg-white"}><td className="px-4 py-3 font-medium">{row.managerName}</td><td className="px-4 py-3">{row.teamSize}</td>{quarters.map((quarter) => <td key={quarter} className="px-4 py-3">{row.perQuarter?.[quarter]?.rate ?? row.checkIns?.[quarter] ?? 0}%</td>)}<td className="px-4 py-3">{row.checkInsDone}/{row.expectedCheckIns}</td><td className="px-4 py-3">{row.approvalAvgDays} days</td><td className="px-4 py-3">{row.submissionRate}%</td></tr>)}</tbody></table>
         </div>
       </Card>
 
