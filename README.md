@@ -120,6 +120,13 @@ npm run admin
 - Reports for achievement, CSV export, goal distribution, manager effectiveness, analytics, and quarter-over-quarter trends.
 - Notifications, email wrapper support, scheduled jobs, escalation rules, and escalation logs.
 
+## Bonus Features
+
+- Microsoft Entra ID (Azure AD) enterprise SSO with optional Azure login, organizational hierarchy synchronization, and role mapping from Azure AD group memberships.
+- Microsoft Teams and email integration for automated submission, approval, and check-in notifications, including Teams bot support and deep links back into the portal.
+- Rule-based escalation module with configurable missed-deadline triggers, employee-to-manager-to-HR escalation chains, and detailed audit logs.
+- Advanced analytics and reporting dashboards covering quarter-over-quarter trends, organizational completion heatmaps, goal distribution analysis, and manager effectiveness metrics.
+
 ## Architecture
 
 ```text
