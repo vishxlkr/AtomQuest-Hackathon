@@ -71,8 +71,18 @@ const createUser = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   const payload = { ...req.body };
   if (payload.email) payload.email = String(payload.email).trim().toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(payload, "managerId")) {
+    payload.managerId = payload.managerId || null;
+    if (payload.managerId) {
+      const manager = await User.findOne({ _id: payload.managerId, role: "manager", isActive: true }).select("_id");
+      if (!manager) throw new ApiError(400, "INVALID_MANAGER", "Select an active manager");
+    }
+  }
   const user = await User.findById(req.params.id).select("+password");
   if (!user) throw new ApiError(404, "USER_NOT_FOUND", "User not found");
+  if (Object.prototype.hasOwnProperty.call(payload, "managerId") && user.role !== "employee") {
+    throw new ApiError(400, "MANAGER_ASSIGNMENT_NOT_ALLOWED", "Managers can only be assigned to employees");
+  }
   Object.assign(user, payload);
   await user.save();
   res.json({ success: true, data: user.toSafeObject() });
