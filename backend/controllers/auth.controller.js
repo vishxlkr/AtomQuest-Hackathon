@@ -29,7 +29,8 @@ const register = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.body.email }).select("+password +refreshToken");
+  const email = String(req.body.email || "").trim().toLowerCase();
+  const user = await User.findOne({ email }).select("+password +refreshToken");
   if (!user || !user.isActive) throw new ApiError(401, "INVALID_CREDENTIALS", "Invalid email or password");
   if (user.authProvider === "azure") throw new ApiError(401, "MICROSOFT_LOGIN_REQUIRED", "Please sign in with Microsoft");
   if (!(await user.comparePassword(req.body.password))) throw new ApiError(401, "INVALID_CREDENTIALS", "Invalid email or password");
